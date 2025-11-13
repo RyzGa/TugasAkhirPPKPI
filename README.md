@@ -200,10 +200,6 @@ Fitur yang bisa ditambahkan:
 
 This project is open source and available for educational purposes.
 
-## 👨‍💻 Developer
-
-Converted from React/TypeScript to PHP by GitHub Copilot
-
 ---
 
 **Selamat mencoba! Jika ada pertanyaan, silakan buka issue di GitHub.**
