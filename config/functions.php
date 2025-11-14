@@ -157,3 +157,10 @@ function resizeImage($sourcePath, $destPath, $maxWidth = 400, $maxHeight = 400)
 
     return $saved;
 }
+
+// Check if current page is active
+function isActivePage($pageName)
+{
+    $currentPage = basename($_SERVER['PHP_SELF']);
+    return $currentPage === $pageName ? 'active' : '';
+}

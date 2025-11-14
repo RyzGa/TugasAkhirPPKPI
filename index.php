@@ -106,18 +106,21 @@ closeDBConnection($conn);
             </div>
 
             <nav class="nav-links">
-                <a href="index.php">Beranda</a>
-                <a href="about.php">Tentang</a>
-                <a href="contact.php">Kontak</a>
+                <a href="index.php" class="<?php echo isActivePage('index.php'); ?>">Beranda</a>
+                <a href="about.php" class="<?php echo isActivePage('about.php'); ?>">Tentang</a>
+                <a href="contact.php" class="<?php echo isActivePage('contact.php'); ?>">Kontak</a>
                 <?php if ($user): ?>
                     <?php if ($user['role'] === 'admin'): ?>
-                        <a href="admin.php">Admin</a>
+                        <a href="admin.php" class="<?php echo isActivePage('admin.php'); ?>">Admin</a>
                     <?php endif; ?>
-                    <a href="add_recipe.php">
+                    <a href="add_recipe.php" class="<?php echo isActivePage('add_recipe.php'); ?>">
                         <i class="fas fa-plus"></i> Tambah Resep
                     </a>
-                    <a href="profile.php">
-                        <i class="fas fa-user"></i> <?php echo htmlspecialchars($user['name']); ?>
+                    <a href="profile.php" class="user-profile-link <?php echo isActivePage('profile.php'); ?>">
+                        <img src="<?php echo htmlspecialchars($user['avatar'] ?: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' . urlencode($user['name'])); ?>" 
+                             alt="<?php echo htmlspecialchars($user['name']); ?>" 
+                             class="avatar">
+                        <span><?php echo htmlspecialchars($user['name']); ?></span>
                     </a>
                     <a href="logout.php">Keluar</a>
                 <?php else: ?>
@@ -217,7 +220,7 @@ closeDBConnection($conn);
                 </div>
 
                 <?php if (count($recipes) > 0): ?>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                    <div class="grid recipe-grid">
                         <?php foreach ($recipes as $recipe): ?>
                             <div class="card recipe-card" onclick="window.location.href='recipe_detail.php?id=<?php echo $recipe['id']; ?>'">
                                 <div class="recipe-card-image-wrapper">
@@ -297,6 +300,8 @@ closeDBConnection($conn);
                 });
         }
     </script>
+
+    <?php include 'includes/footer.php'; ?>
 </body>
 
 </html>

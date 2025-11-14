@@ -24,11 +24,16 @@ $user = getCurrentUser();
                 <span>Nusa Bites</span>
             </a>
             <nav class="nav-links">
-                <a href="index.php">Beranda</a>
-                <a href="about.php">Tentang</a>
-                <a href="contact.php">Kontak</a>
+                <a href="index.php" class="<?php echo isActivePage('index.php'); ?>">Beranda</a>
+                <a href="about.php" class="<?php echo isActivePage('about.php'); ?>">Tentang</a>
+                <a href="contact.php" class="<?php echo isActivePage('contact.php'); ?>">Kontak</a>
                 <?php if ($user): ?>
-                    <a href="profile.php"><i class="fas fa-user"></i> <?php echo htmlspecialchars($user['name']); ?></a>
+                    <a href="profile.php" class="user-profile-link <?php echo isActivePage('profile.php'); ?>">
+                        <img src="<?php echo htmlspecialchars($user['avatar'] ?: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' . urlencode($user['name'])); ?>" 
+                             alt="<?php echo htmlspecialchars($user['name']); ?>" 
+                             class="avatar">
+                        <span><?php echo htmlspecialchars($user['name']); ?></span>
+                    </a>
                     <a href="logout.php">Keluar</a>
                 <?php else: ?>
                     <a href="login.php" class="btn btn-sm btn-secondary">Masuk</a>
@@ -113,6 +118,7 @@ $user = getCurrentUser();
             </div>
         </div>
     </div>
+    <?php include 'includes/footer.php'; ?>
 </body>
 
 </html>
