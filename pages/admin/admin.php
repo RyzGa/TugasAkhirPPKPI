@@ -1,6 +1,6 @@
 <?php
-require_once 'config/functions.php';
-require_once 'config/database.php';
+require_once '../../config/functions.php';
+require_once '../../config/database.php';
 
 requireLogin();
 requireAdmin();
@@ -31,7 +31,7 @@ closeDBConnection($conn);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - Nusa Bites</title>
-    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 
@@ -39,22 +39,22 @@ closeDBConnection($conn);
     <!-- Header -->
     <header class="header">
         <div class="container header-content">
-            <a href="index.php" class="logo">
+            <a href="../../index.php" class="logo">
                 <div class="logo-icon">
                     <i class="fas fa-hat-chef" style="font-size: 1.5rem;"></i>
                 </div>
                 <span>Nusa Bites</span>
             </a>
             <nav class="nav-links">
-                <a href="index.php" class="<?php echo isActivePage('index.php'); ?>">Beranda</a>
+                <a href="../../index.php" class="<?php echo isActivePage('index.php'); ?>">Beranda</a>
                 <a href="admin.php" class="<?php echo isActivePage('admin.php'); ?>"><i class="fas fa-shield-alt"></i> Admin</a>
-                <a href="profile.php" class="user-profile-link <?php echo isActivePage('profile.php'); ?>">
+                <a href="../user/profile.php" class="user-profile-link <?php echo isActivePage('profile.php'); ?>">
                     <img src="<?php echo htmlspecialchars($user['avatar'] ?: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' . urlencode($user['name'])); ?>" 
                          alt="<?php echo htmlspecialchars($user['name']); ?>" 
                          class="avatar">
                     <span><?php echo htmlspecialchars($user['name']); ?></span>
                 </a>
-                <a href="logout.php">Keluar</a>
+                <a href="../auth/logout.php">Keluar</a>
             </nav>
         </div>
     </header>
@@ -96,7 +96,7 @@ closeDBConnection($conn);
         <div class="card" style="padding: 1.5rem;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                 <h2 style="margin: 0;">Semua Resep</h2>
-                <a href="add_recipe.php" class="btn btn-primary btn-sm">
+                <a href="../recipe/add_recipe.php" class="btn btn-primary btn-sm">
                     <i class="fas fa-plus"></i> Tambah Resep
                 </a>
             </div>
@@ -119,7 +119,7 @@ closeDBConnection($conn);
                             <tr style="border-bottom: 1px solid var(--color-border);">
                                 <td style="padding: 0.75rem;"><?php echo $recipe['id']; ?></td>
                                 <td style="padding: 0.75rem;">
-                                    <a href="recipe_detail.php?id=<?php echo $recipe['id']; ?>" style="color: var(--color-primary); text-decoration: none; font-weight: 500;">
+                                    <a href="../recipe/recipe_detail.php?id=<?php echo $recipe['id']; ?>" style="color: var(--color-primary); text-decoration: none; font-weight: 500;">
                                         <?php echo htmlspecialchars($recipe['title']); ?>
                                     </a>
                                 </td>
@@ -134,12 +134,12 @@ closeDBConnection($conn);
                                 <td style="padding: 0.75rem; text-align: center;"><?php echo $recipe['review_count']; ?></td>
                                 <td style="padding: 0.75rem; text-align: center;">
                                     <div style="display: flex; gap: 0.5rem; justify-content: center;">
-                                        <a href="recipe_detail.php?id=<?php echo $recipe['id']; ?>"
+                                        <a href="../recipe/recipe_detail.php?id=<?php echo $recipe['id']; ?>"
                                             class="btn btn-sm"
                                             style="background: #3b82f6; color: white; padding: 0.25rem 0.75rem;">
                                             <i class="fas fa-eye"></i>
                                         </a>
-                                        <a href="edit_recipe.php?id=<?php echo $recipe['id']; ?>"
+                                        <a href="../recipe/edit_recipe.php?id=<?php echo $recipe['id']; ?>"
                                             class="btn btn-sm"
                                             style="background: #10b981; color: white; padding: 0.25rem 0.75rem;">
                                             <i class="fas fa-edit"></i>
@@ -166,7 +166,9 @@ closeDBConnection($conn);
             }
         }
     </script>
-    <?php include 'includes/footer.php'; ?>
+    <?php include '../../includes/footer.php'; ?>
 </body>
 
 </html>
+
+

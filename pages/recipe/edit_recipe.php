@@ -1,6 +1,6 @@
 <?php
-require_once 'config/functions.php';
-require_once 'config/database.php';
+require_once '../../config/functions.php';
+require_once '../../config/database.php';
 
 requireLogin();
 
@@ -10,7 +10,7 @@ $error = '';
 $success = '';
 
 if ($recipeId === 0) {
-    header('Location: index.php');
+    header('Location: ../../index.php');
     exit;
 }
 
@@ -24,13 +24,13 @@ $result = $stmt->get_result();
 $recipe = $result->fetch_assoc();
 
 if (!$recipe) {
-    header('Location: index.php');
+    header('Location: ../../index.php');
     exit;
 }
 
 // Check permission
 if ($user['role'] !== 'admin' && $user['id'] != $recipe['author_id']) {
-    header('Location: index.php');
+    header('Location: ../../index.php');
     exit;
 }
 
@@ -77,7 +77,7 @@ closeDBConnection($conn);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Resep - Nusa Bites</title>
-    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 
@@ -85,14 +85,14 @@ closeDBConnection($conn);
     <!-- Header -->
     <header class="header">
         <div class="container header-content">
-            <a href="index.php" class="logo">
+            <a href="../../index.php" class="logo">
                 <div class="logo-icon">
                     <i class="fas fa-hat-chef" style="font-size: 1.5rem;"></i>
                 </div>
                 <span>Nusa Bites</span>
             </a>
             <nav class="nav-links">
-                <a href="index.php" class="<?php echo isActivePage('index.php'); ?>">Beranda</a>
+                <a href="../../index.php" class="<?php echo isActivePage('index.php'); ?>">Beranda</a>
                 <a href="profile.php" class="user-profile-link <?php echo isActivePage('profile.php'); ?>">
                     <img src="<?php echo htmlspecialchars($user['avatar'] ?: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' . urlencode($user['name'])); ?>" 
                          alt="<?php echo htmlspecialchars($user['name']); ?>" 
@@ -186,7 +186,9 @@ closeDBConnection($conn);
             </form>
         </div>
     </div>
-    <?php include 'includes/footer.php'; ?>
+    <?php include '../../includes/footer.php'; ?>
 </body>
 
 </html>
+
+

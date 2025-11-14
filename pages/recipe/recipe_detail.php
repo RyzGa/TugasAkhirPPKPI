@@ -1,12 +1,12 @@
 <?php
-require_once 'config/functions.php';
-require_once 'config/database.php';
+require_once '../../config/functions.php';
+require_once '../../config/database.php';
 
 $user = getCurrentUser();
 $recipeId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
 if ($recipeId === 0) {
-    header('Location: index.php');
+    header('Location: ../../index.php');
     exit;
 }
 
@@ -23,7 +23,7 @@ $result = $stmt->get_result();
 $recipe = $result->fetch_assoc();
 
 if (!$recipe) {
-    header('Location: index.php');
+    header('Location: ../../index.php');
     exit;
 }
 
@@ -68,7 +68,7 @@ closeDBConnection($conn);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo htmlspecialchars($recipe['title']); ?> - Nusa Bites</title>
-    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 
@@ -76,7 +76,7 @@ closeDBConnection($conn);
     <!-- Header -->
     <header class="header">
         <div class="container header-content">
-            <a href="index.php" class="logo">
+            <a href="../../index.php" class="logo">
                 <div class="logo-icon">
                     <i class="fas fa-hat-chef" style="font-size: 1.5rem;"></i>
                 </div>
@@ -84,7 +84,7 @@ closeDBConnection($conn);
             </a>
 
             <nav class="nav-links">
-                <a href="index.php" class="<?php echo isActivePage('index.php'); ?>">Beranda</a>
+                <a href="../../index.php" class="<?php echo isActivePage('index.php'); ?>">Beranda</a>
                 <?php if ($user): ?>
                     <a href="profile.php" class="user-profile-link <?php echo isActivePage('profile.php'); ?>">
                         <img src="<?php echo htmlspecialchars($user['avatar'] ?: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' . urlencode($user['name'])); ?>" 
@@ -103,7 +103,7 @@ closeDBConnection($conn);
     <!-- Main Content -->
     <div class="container" style="padding: 2rem 1rem; max-width: 1200px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-            <a href="index.php" class="btn btn-ghost">
+            <a href="../../index.php" class="btn btn-ghost">
                 <i class="fas fa-arrow-left"></i> Kembali
             </a>
 
@@ -382,7 +382,9 @@ closeDBConnection($conn);
             }
         }
     </script>
-    <?php include 'includes/footer.php'; ?>
+    <?php include '../../includes/footer.php'; ?>
 </body>
 
 </html>
+
+

@@ -1,6 +1,6 @@
 <?php
-require_once 'config/functions.php';
-require_once 'config/database.php';
+require_once '../../config/functions.php';
+require_once '../../config/database.php';
 
 requireLogin();
 
@@ -31,7 +31,7 @@ closeDBConnection($conn);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profil - Nusa Bites</title>
-    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 
@@ -39,15 +39,15 @@ closeDBConnection($conn);
     <!-- Header -->
     <header class="header">
         <div class="container header-content">
-            <a href="index.php" class="logo">
+            <a href="../../index.php" class="logo">
                 <div class="logo-icon">
                     <i class="fas fa-hat-chef" style="font-size: 1.5rem;"></i>
                 </div>
                 <span>Nusa Bites</span>
             </a>
             <nav class="nav-links">
-                <a href="index.php" class="<?php echo isActivePage('index.php'); ?>">Beranda</a>
-                <a href="add_recipe.php" class="<?php echo isActivePage('add_recipe.php'); ?>"><i class="fas fa-plus"></i> Tambah Resep</a>
+                <a href="../../index.php" class="<?php echo isActivePage('index.php'); ?>">Beranda</a>
+                <a href="../recipe/add_recipe.php" class="<?php echo isActivePage('add_recipe.php'); ?>"><i class="fas fa-plus"></i> Tambah Resep</a>
                     <a href="profile.php" class="user-profile-link <?php echo isActivePage('profile.php'); ?>">
                         <img src="<?php echo htmlspecialchars($user['avatar'] ?: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' . urlencode($user['name'])); ?>" 
                              alt="<?php echo htmlspecialchars($user['name']); ?>" 
@@ -141,7 +141,7 @@ closeDBConnection($conn);
                     <i class="fas fa-book" style="font-size: 4rem; color: #d1d5db; margin-bottom: 1rem;"></i>
                     <h3>Belum ada resep</h3>
                     <p class="text-gray" style="margin-bottom: 1.5rem;">Mulai berbagi resep favorit Anda dengan komunitas!</p>
-                    <a href="add_recipe.php" class="btn btn-primary">
+                    <a href="../recipe/add_recipe.php" class="btn btn-primary">
                         <i class="fas fa-plus"></i> Tambah Resep
                     </a>
                 </div>
@@ -186,7 +186,7 @@ closeDBConnection($conn);
                     <i class="fas fa-heart" style="font-size: 4rem; color: #d1d5db; margin-bottom: 1rem;"></i>
                     <h3>Belum ada favorit</h3>
                     <p class="text-gray" style="margin-bottom: 1.5rem;">Tandai resep favorit Anda untuk akses cepat!</p>
-                    <a href="index.php" class="btn btn-primary">
+                    <a href="../../index.php" class="btn btn-primary">
                         <i class="fas fa-search"></i> Jelajahi Resep
                     </a>
                 </div>
@@ -216,7 +216,9 @@ closeDBConnection($conn);
             activeButton.style.color = 'var(--color-primary)';
         }
     </script>
-    <?php include 'includes/footer.php'; ?>
+    <?php include '../../includes/footer.php'; ?>
 </body>
 
 </html>
+
+

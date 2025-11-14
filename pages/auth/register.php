@@ -63,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daftar - Nusa Bites</title>
-    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 
@@ -72,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div style="max-width: 1200px; width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: center;">
             <!-- Left side - Branding -->
             <div style="display: flex; flex-direction: column; align-items: center;">
-                <a href="index.php" style="display: inline-flex; align-items: center; gap: 0.75rem; text-decoration: none; margin-bottom: 2rem;">
+                <a href="../../index.php" style="display: inline-flex; align-items: center; gap: 0.75rem; text-decoration: none; margin-bottom: 2rem;">
                     <div style="background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%); padding: 1rem; border-radius: 1rem; box-shadow: var(--shadow-lg);">
                         <i class="fas fa-hat-chef" style="font-size: 3rem; color: white;"></i>
                     </div>
@@ -185,7 +185,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </form>
 
                 <div style="margin-top: 1.5rem; text-align: center;">
-                    <a href="index.php" style="color: var(--color-text-gray); text-decoration: none;">
+                    <a href="../../index.php" style="color: var(--color-text-gray); text-decoration: none;">
                         <i class="fas fa-arrow-left"></i> Kembali ke Beranda
                     </a>
                 </div>
@@ -212,3 +212,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </body>
 
 </html>
+
+

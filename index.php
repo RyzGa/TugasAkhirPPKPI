@@ -10,7 +10,7 @@ $search = isset($_GET['search']) ? sanitizeInput($_GET['search']) : '';
 $categories = isset($_GET['categories']) ? $_GET['categories'] : [];
 $regions = isset($_GET['regions']) ? $_GET['regions'] : [];
 $cookingTime = isset($_GET['cooking_time']) ? sanitizeInput($_GET['cooking_time']) : 'all';
-$minRating = isset($_GET['min_rating']) ? (float)$_GET['min_rating'] : 0;
+$sortRating = isset($_GET['sort_rating']) ? sanitizeInput($_GET['sort_rating']) : 'newest';
 
 // Build query
 $query = "SELECT r.*, 
@@ -44,13 +44,18 @@ if (!empty($regions)) {
     }
 }
 
-if ($minRating > 0) {
-    $query .= " AND r.rating >= ?";
-    $params[] = $minRating;
-    $types .= "d";
+// Sorting
+switch ($sortRating) {
+    case 'highest':
+        $query .= " ORDER BY r.rating DESC, r.created_at DESC";
+        break;
+    case 'lowest':
+        $query .= " ORDER BY r.rating ASC, r.created_at DESC";
+        break;
+    default: // newest
+        $query .= " ORDER BY r.created_at DESC";
+        break;
 }
-
-$query .= " ORDER BY r.created_at DESC";
 
 $stmt = $conn->prepare($query);
 if (count($params) > 1) {
@@ -111,20 +116,20 @@ closeDBConnection($conn);
                 <a href="contact.php" class="<?php echo isActivePage('contact.php'); ?>">Kontak</a>
                 <?php if ($user): ?>
                     <?php if ($user['role'] === 'admin'): ?>
-                        <a href="admin.php" class="<?php echo isActivePage('admin.php'); ?>">Admin</a>
+                        <a href="pages/admin/admin.php" class="<?php echo isActivePage('admin.php'); ?>">Admin</a>
                     <?php endif; ?>
-                    <a href="add_recipe.php" class="<?php echo isActivePage('add_recipe.php'); ?>">
+                    <a href="pages/recipe/add_recipe.php" class="<?php echo isActivePage('add_recipe.php'); ?>">
                         <i class="fas fa-plus"></i> Tambah Resep
                     </a>
-                    <a href="profile.php" class="user-profile-link <?php echo isActivePage('profile.php'); ?>">
+                    <a href="pages/user/profile.php" class="user-profile-link <?php echo isActivePage('profile.php'); ?>">
                         <img src="<?php echo htmlspecialchars($user['avatar'] ?: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' . urlencode($user['name'])); ?>" 
                              alt="<?php echo htmlspecialchars($user['name']); ?>" 
                              class="avatar">
                         <span><?php echo htmlspecialchars($user['name']); ?></span>
                     </a>
-                    <a href="logout.php">Keluar</a>
+                    <a href="pages/auth/logout.php">Keluar</a>
                 <?php else: ?>
-                    <a href="login.php" class="btn btn-sm btn-secondary">Masuk</a>
+                    <a href="pages/auth/login.php" class="btn btn-sm btn-secondary">Masuk</a>
                 <?php endif; ?>
             </nav>
         </div>
@@ -196,13 +201,13 @@ closeDBConnection($conn);
                         </div>
                     </div>
 
-                    <!-- Rating Filter -->
+                    <!-- Urutan Rating -->
                     <div class="filter-section">
-                        <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem;">Rating Minimum</h4>
-                        <select name="min_rating" class="form-select" onchange="this.form.submit()">
-                            <option value="0" <?php echo $minRating == 0 ? 'selected' : ''; ?>>Semua Rating</option>
-                            <option value="4" <?php echo $minRating == 4 ? 'selected' : ''; ?>>4+ ⭐</option>
-                            <option value="4.5" <?php echo $minRating == 4.5 ? 'selected' : ''; ?>>4.5+ ⭐</option>
+                        <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem;">Urutan Rating</h4>
+                        <select name="sort_rating" class="form-select" onchange="this.form.submit()">
+                            <option value="newest" <?php echo $sortRating == 'newest' ? 'selected' : ''; ?>>Terbaru</option>
+                            <option value="highest" <?php echo $sortRating == 'highest' ? 'selected' : ''; ?>>Rating Tertinggi</option>
+                            <option value="lowest" <?php echo $sortRating == 'lowest' ? 'selected' : ''; ?>>Rating Terendah</option>
                         </select>
                     </div>
 
@@ -222,7 +227,7 @@ closeDBConnection($conn);
                 <?php if (count($recipes) > 0): ?>
                     <div class="grid recipe-grid">
                         <?php foreach ($recipes as $recipe): ?>
-                            <div class="card recipe-card" onclick="window.location.href='recipe_detail.php?id=<?php echo $recipe['id']; ?>'">
+                            <div class="card recipe-card" onclick="window.location.href='pages/recipe/recipe_detail.php?id=<?php echo $recipe['id']; ?>'">
                                 <div class="recipe-card-image-wrapper">
                                     <img src="<?php echo htmlspecialchars($recipe['image']); ?>"
                                         alt="<?php echo htmlspecialchars($recipe['title']); ?>"

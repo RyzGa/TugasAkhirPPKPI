@@ -1,6 +1,6 @@
 <?php
-require_once 'config/functions.php';
-require_once 'config/database.php';
+require_once '../../config/functions.php';
+require_once '../../config/database.php';
 
 requireLogin();
 
@@ -146,7 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Profil - Nusa Bites</title>
-    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 
@@ -154,14 +154,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <!-- Header -->
     <header class="header">
         <div class="container header-content">
-            <a href="index.php" class="logo">
+            <a href="../../index.php" class="logo">
                 <div class="logo-icon">
                     <i class="fas fa-hat-chef" style="font-size: 1.5rem;"></i>
                 </div>
                 <span>Nusa Bites</span>
             </a>
             <nav class="nav-links">
-                <a href="index.php" class="<?php echo isActivePage('index.php'); ?>">Beranda</a>
+                <a href="../../index.php" class="<?php echo isActivePage('index.php'); ?>">Beranda</a>
                 <a href="add_recipe.php" class="<?php echo isActivePage('add_recipe.php'); ?>"><i class="fas fa-plus"></i> Tambah Resep</a>
                 <a href="profile.php" class="user-profile-link <?php echo isActivePage('profile.php'); ?>">
                     <img src="<?php echo htmlspecialchars($user['avatar'] ?: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' . urlencode($user['name'])); ?>" 
@@ -233,7 +233,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </form>
         </div>
     </div>
-    <?php include 'includes/footer.php'; ?>
+    <?php include '../../includes/footer.php'; ?>
 </body>
 
 </html>
+
+

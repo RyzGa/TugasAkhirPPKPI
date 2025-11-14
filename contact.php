@@ -28,15 +28,15 @@ $user = getCurrentUser();
                 <a href="about.php" class="<?php echo isActivePage('about.php'); ?>">Tentang</a>
                 <a href="contact.php" class="<?php echo isActivePage('contact.php'); ?>">Kontak</a>
                 <?php if ($user): ?>
-                    <a href="profile.php" class="user-profile-link <?php echo isActivePage('profile.php'); ?>">
+                    <a href="pages/user/profile.php" class="user-profile-link <?php echo isActivePage('profile.php'); ?>">
                         <img src="<?php echo htmlspecialchars($user['avatar'] ?: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' . urlencode($user['name'])); ?>" 
                              alt="<?php echo htmlspecialchars($user['name']); ?>" 
                              class="avatar">
                         <span><?php echo htmlspecialchars($user['name']); ?></span>
                     </a>
-                    <a href="logout.php">Keluar</a>
+                    <a href="pages/auth/logout.php">Keluar</a>
                 <?php else: ?>
-                    <a href="login.php" class="btn btn-sm btn-secondary">Masuk</a>
+                    <a href="pages/auth/login.php" class="btn btn-sm btn-secondary">Masuk</a>
                 <?php endif; ?>
             </nav>
         </div>
