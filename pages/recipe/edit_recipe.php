@@ -41,17 +41,58 @@ $steps = json_decode($recipe['steps'], true);
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $title = sanitizeInput($_POST['title']);
     $description = sanitizeInput($_POST['description']);
-    $image = sanitizeInput($_POST['image']);
+    $image = $recipe['image']; // Keep existing image by default
     $cookingTime = sanitizeInput($_POST['cooking_time']);
     $category = sanitizeInput($_POST['category']);
     $region = sanitizeInput($_POST['region']);
 
+    // Handle file upload
+    if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+        $allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+        $maxSize = 5 * 1024 * 1024; // 5MB
+
+        if (!in_array($_FILES['image']['type'], $allowedTypes)) {
+            $error = 'Format file tidak didukung. Gunakan JPG, PNG, atau WEBP.';
+        } elseif ($_FILES['image']['size'] > $maxSize) {
+            $error = 'Ukuran file terlalu besar. Maksimal 5MB.';
+        } else {
+            $uploadDir = dirname(dirname(__DIR__)) . '/uploads/recipes/';
+            if (!file_exists($uploadDir)) {
+                mkdir($uploadDir, 0777, true);
+            }
+
+            $extension = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
+            $filename = time() . '_' . bin2hex(random_bytes(6)) . '.' . $extension;
+            $uploadPath = $uploadDir . $filename;
+
+            if (move_uploaded_file($_FILES['image']['tmp_name'], $uploadPath)) {
+                // Resize image
+                $resizedPath = $uploadDir . 'resized_' . $filename;
+                if (resizeImage($uploadPath, $resizedPath, 800, 600)) {
+                    unlink($uploadPath); // Delete original
+                    $newImage = 'uploads/recipes/resized_' . $filename;
+                } else {
+                    $newImage = 'uploads/recipes/' . $filename;
+                }
+
+                // Delete old image if it's a local file
+                if (!empty($recipe['image']) && strpos($recipe['image'], 'http') !== 0 && file_exists(dirname(dirname(__DIR__)) . '/' . $recipe['image'])) {
+                    unlink(dirname(dirname(__DIR__)) . '/' . $recipe['image']);
+                }
+
+                $image = $newImage;
+            } else {
+                $error = 'Gagal mengupload gambar.';
+            }
+        }
+    }
+
     $newIngredients = array_filter(array_map('trim', explode("\n", $_POST['ingredients'])));
     $newSteps = array_filter(array_map('trim', explode("\n", $_POST['steps'])));
 
-    if (empty($title) || empty($description) || count($newIngredients) === 0 || count($newSteps) === 0) {
+    if (empty($error) && (empty($title) || empty($description) || count($newIngredients) === 0 || count($newSteps) === 0)) {
         $error = 'Mohon lengkapi semua field yang diperlukan!';
-    } else {
+    } elseif (empty($error)) {
         $ingredientsJson = json_encode($newIngredients);
         $stepsJson = json_encode($newSteps);
 
@@ -93,13 +134,35 @@ closeDBConnection($conn);
             </a>
             <nav class="nav-links">
                 <a href="../../index.php" class="<?php echo isActivePage('index.php'); ?>">Beranda</a>
-                <a href="profile.php" class="user-profile-link <?php echo isActivePage('profile.php'); ?>">
-                    <img src="<?php echo htmlspecialchars($user['avatar'] ?: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' . urlencode($user['name'])); ?>" 
-                         alt="<?php echo htmlspecialchars($user['name']); ?>" 
-                         class="avatar">
-                    <span><?php echo htmlspecialchars($user['name']); ?></span>
-                </a>
-                <a href="logout.php">Keluar</a>
+                <div class="profile-dropdown">
+                    <button class="user-profile-btn" onclick="toggleProfileDropdown(event)">
+                        <?php
+                        $navAvatar = $user['avatar'];
+                        if (!empty($navAvatar) && strpos($navAvatar, 'http') !== 0) {
+                            $navAvatar = '../../' . $navAvatar;
+                        }
+                        ?>
+                        <?php if (!empty($navAvatar)): ?>
+                            <img src="<?php echo htmlspecialchars($navAvatar); ?>"
+                                alt="<?php echo htmlspecialchars($user['name']); ?>"
+                                class="avatar">
+                        <?php else: ?>
+                            <i class="fas fa-user-circle" style="font-size: 1.5rem;"></i>
+                        <?php endif; ?>
+                        <span><?php echo htmlspecialchars($user['name']); ?></span>
+                        <i class="fas fa-chevron-down" style="font-size: 0.8rem; margin-left: 0.3rem;"></i>
+                    </button>
+                    <div class="profile-dropdown-menu" id="profileDropdownMenu">
+                        <a href="../user/profile.php" class="dropdown-item">
+                            <i class="fas fa-user"></i>
+                            <span>Lihat Profil</span>
+                        </a>
+                        <a href="../auth/logout.php" class="dropdown-item">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Sign Out</span>
+                        </a>
+                    </div>
+                </div>
             </nav>
         </div>
     </header>
@@ -119,7 +182,7 @@ closeDBConnection($conn);
                 <div class="alert alert-error"><?php echo $error; ?></div>
             <?php endif; ?>
 
-            <form method="POST" action="">
+            <form method="POST" action="" enctype="multipart/form-data">
                 <div class="form-group">
                     <label for="title" class="form-label">Judul Resep *</label>
                     <input type="text" id="title" name="title" class="form-input" required
@@ -132,9 +195,14 @@ closeDBConnection($conn);
                 </div>
 
                 <div class="form-group">
-                    <label for="image" class="form-label">URL Gambar</label>
-                    <input type="url" id="image" name="image" class="form-input"
-                        value="<?php echo htmlspecialchars($recipe['image']); ?>">
+                    <label for="image" class="form-label">Gambar Resep</label>
+                    <?php if (!empty($recipe['image'])): ?>
+                        <div style="margin-bottom: 0.5rem;">
+                            <small class="text-gray">Gambar saat ini: <?php echo basename($recipe['image']); ?></small>
+                        </div>
+                    <?php endif; ?>
+                    <input type="file" id="image" name="image" class="form-input" accept="image/jpeg,image/png,image/webp,image/jpg">
+                    <small class="text-gray">Upload gambar baru (JPG, PNG, atau WEBP, maksimal 5MB). Kosongkan jika tidak ingin mengubah gambar.</small>
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
@@ -186,9 +254,9 @@ closeDBConnection($conn);
             </form>
         </div>
     </div>
+
+    <script src="../../assets/js/dropdown.js"></script>
     <?php include '../../includes/footer.php'; ?>
 </body>
 
 </html>
-
-

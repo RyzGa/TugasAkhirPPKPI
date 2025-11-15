@@ -11,7 +11,7 @@ $success = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = sanitizeInput($_POST['name']);
     $email = sanitizeInput($_POST['email']);
-    $avatar = sanitizeInput($_POST['avatar']);
+    $avatar = $user['avatar']; // Keep existing avatar by default
     $password = isset($_POST['password']) ? $_POST['password'] : '';
     $confirm = isset($_POST['confirm_password']) ? $_POST['confirm_password'] : '';
 
@@ -49,7 +49,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $error = 'Tipe gambar tidak didukung. Gunakan JPG, PNG, atau WEBP.';
                         } else {
                             $ext = $allowed[$mime];
-                            $uploadDir = __DIR__ . '/uploads/avatars';
+                            // Upload ke root project/uploads/avatars/, bukan pages/user/uploads/
+                            $uploadDir = dirname(dirname(__DIR__)) . '/uploads/avatars';
                             if (!is_dir($uploadDir)) {
                                 mkdir($uploadDir, 0755, true);
                             }
@@ -63,12 +64,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             if (move_uploaded_file($tmp, $dest)) {
                                 // Resize the saved image to limit dimensions
                                 $webPath = 'uploads/avatars/' . $filename;
-                                $fullPath = __DIR__ . '/' . $webPath;
+                                $fullPath = dirname(dirname(__DIR__)) . '/' . $webPath;
                                 // Attempt resize; if failed, keep original
                                 if (function_exists('resizeImage')) {
                                     @resizeImage($fullPath, $fullPath, 400, 400);
                                 }
-                                // Store web-accessible path
+                                // Store web-accessible path (relatif ke root)
                                 $avatar = $webPath;
                             } else {
                                 $error = 'Gagal menyimpan file gambar.';
@@ -82,10 +83,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($error)) {
             $conn = getDBConnection();
 
-            // If avatar URL is empty, generate a default based on name
-            if (empty($avatar)) {
-                $avatar = generateAvatarUrl($name);
-            }
+            // Keep avatar empty if no upload and no existing avatar
+            // No automatic avatar generation
 
             // Check email uniqueness (exclude current user)
             $checkStmt = $conn->prepare("SELECT id FROM users WHERE email = ? AND id != ?");
@@ -115,7 +114,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // Delete previous avatar file if it was a local upload
                     $oldAvatar = isset($user['avatar']) ? $user['avatar'] : '';
                     if (!empty($oldAvatar) && strpos($oldAvatar, 'uploads/avatars/') === 0 && $oldAvatar !== $avatar) {
-                        $oldFull = __DIR__ . '/' . $oldAvatar;
+                        $oldFull = dirname(dirname(__DIR__)) . '/' . $oldAvatar;
                         if (is_file($oldFull)) {
                             @unlink($oldFull);
                         }
@@ -162,14 +161,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </a>
             <nav class="nav-links">
                 <a href="../../index.php" class="<?php echo isActivePage('index.php'); ?>">Beranda</a>
-                <a href="add_recipe.php" class="<?php echo isActivePage('add_recipe.php'); ?>"><i class="fas fa-plus"></i> Tambah Resep</a>
-                <a href="profile.php" class="user-profile-link <?php echo isActivePage('profile.php'); ?>">
-                    <img src="<?php echo htmlspecialchars($user['avatar'] ?: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' . urlencode($user['name'])); ?>" 
-                         alt="<?php echo htmlspecialchars($user['name']); ?>" 
-                         class="avatar">
-                    <span><?php echo htmlspecialchars($user['name']); ?></span>
-                </a>
-                <a href="logout.php">Keluar</a>
+                <a href="../recipe/add_recipe.php" class="<?php echo isActivePage('add_recipe.php'); ?>"><i class="fas fa-plus"></i> Tambah Resep</a>
+                <div class="profile-dropdown">
+                    <button class="user-profile-btn" onclick="toggleProfileDropdown(event)">
+                        <?php
+                        $navAvatar = $user['avatar'];
+                        if (!empty($navAvatar) && strpos($navAvatar, 'http') !== 0) {
+                            $navAvatar = '../../' . $navAvatar;
+                        }
+                        ?>
+                        <?php if (!empty($navAvatar)): ?>
+                            <img src="<?php echo htmlspecialchars($navAvatar); ?>"
+                                alt="<?php echo htmlspecialchars($user['name']); ?>"
+                                class="avatar">
+                        <?php else: ?>
+                            <i class="fas fa-user-circle" style="font-size: 1.5rem;"></i>
+                        <?php endif; ?>
+                        <span><?php echo htmlspecialchars($user['name']); ?></span>
+                        <i class="fas fa-chevron-down" style="font-size: 0.8rem; margin-left: 0.3rem;"></i>
+                    </button>
+                    <div class="profile-dropdown-menu" id="profileDropdownMenu">
+                        <a href="profile.php" class="dropdown-item">
+                            <i class="fas fa-user"></i>
+                            <span>Lihat Profil</span>
+                        </a>
+                        <a href="../auth/logout.php" class="dropdown-item">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Sign Out</span>
+                        </a>
+                    </div>
+                </div>
             </nav>
         </div>
     </header>
@@ -202,15 +223,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
 
                 <div class="form-group">
-                    <label for="avatar">URL Foto Profil</label>
-                    <input type="text" id="avatar" name="avatar" class="form-input" placeholder="https://example.com/avatar.jpg" value="<?php echo htmlspecialchars($user['avatar']); ?>">
-                    <small class="text-gray">Masukkan URL gambar atau kosongkan untuk menggunakan avatar default.</small>
-                </div>
-
-                <div class="form-group">
                     <label for="avatar_file">Unggah Foto Profil (opsional, max 2MB)</label>
                     <input type="file" id="avatar_file" name="avatar_file" accept="image/png,image/jpeg,image/webp" class="form-input">
-                    <small class="text-gray">Jika Anda mengunggah gambar, itu akan menggantikan URL avatar.</small>
+                    <small class="text-gray">Format: JPG, PNG, WEBP. Jika tidak diunggah, icon profil default akan ditampilkan.</small>
+                    <?php if (!empty($user['avatar'])): ?>
+                        <div style="margin-top: 0.5rem;">
+                            <small class="text-gray">
+                                <i class="fas fa-check-circle" style="color: var(--color-success);"></i>
+                                Foto profil saat ini: <strong><?php echo basename($user['avatar']); ?></strong>
+                            </small>
+                        </div>
+                    <?php endif; ?>
                 </div>
 
                 <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--color-border);">
@@ -233,9 +256,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </form>
         </div>
     </div>
+
+    <script src="../../assets/js/dropdown.js"></script>
     <?php include '../../includes/footer.php'; ?>
 </body>
 
 </html>
-
-

@@ -30,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'Email sudah terdaftar!';
         } else {
             $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-            $avatar = generateAvatarUrl($name);
+            $avatar = ""; // No default avatar, user will see icon until they upload
 
             $stmt = $conn->prepare("INSERT INTO users (name, email, password, avatar) VALUES (?, ?, ?, ?)");
             $stmt->bind_param("ssss", $name, $email, $hashedPassword, $avatar);
@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['user_role'] = 'user';
                 $_SESSION['user_avatar'] = $avatar;
 
-                header('Location: index.php');
+                header('Location: login.php');
                 exit;
             } else {
                 $error = 'Terjadi kesalahan saat mendaftar. Silakan coba lagi.';
@@ -212,5 +212,3 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </body>
 
 </html>
-
-

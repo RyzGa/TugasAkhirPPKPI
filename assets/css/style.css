@@ -264,7 +264,7 @@ p {
   .md\:grid-cols-2 {
     grid-template-columns: repeat(1, 1fr);
   }
-  
+
   .recipe-grid {
     grid-template-columns: repeat(1, 1fr);
   }
@@ -691,6 +691,78 @@ p {
   font-weight: 600;
 }
 
+/* Profile Dropdown */
+.profile-dropdown {
+  position: relative;
+}
+
+.user-profile-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  transition: all 0.2s;
+  background: transparent;
+  border: none;
+  color: var(--color-text-dark);
+  font-weight: 500;
+  font-size: 1rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.user-profile-btn:hover {
+  background-color: #f3f4f6;
+}
+
+.profile-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: var(--shadow-lg);
+  min-width: 200px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all 0.2s ease-in-out;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.profile-dropdown-menu.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.profile-dropdown-menu .dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  color: var(--color-text-dark);
+  text-decoration: none;
+  transition: all 0.2s;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.profile-dropdown-menu .dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.profile-dropdown-menu .dropdown-item:hover {
+  background-color: var(--color-bg-light);
+  color: var(--color-primary);
+}
+
+.profile-dropdown-menu .dropdown-item i {
+  width: 1.25rem;
+  font-size: 1rem;
+}
+
 /* Loading Spinner */
 .spinner {
   border: 3px solid var(--color-border);
@@ -836,11 +908,11 @@ p {
   .container {
     padding: 0 0.75rem;
   }
-  
+
   .footer {
     padding: 2rem 0 1rem;
   }
-  
+
   .footer-content {
     grid-template-columns: 1fr;
     gap: 1.5rem;

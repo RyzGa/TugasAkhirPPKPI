@@ -48,13 +48,35 @@ closeDBConnection($conn);
             <nav class="nav-links">
                 <a href="../../index.php" class="<?php echo isActivePage('index.php'); ?>">Beranda</a>
                 <a href="../recipe/add_recipe.php" class="<?php echo isActivePage('add_recipe.php'); ?>"><i class="fas fa-plus"></i> Tambah Resep</a>
-                    <a href="profile.php" class="user-profile-link <?php echo isActivePage('profile.php'); ?>">
-                        <img src="<?php echo htmlspecialchars($user['avatar'] ?: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' . urlencode($user['name'])); ?>" 
-                             alt="<?php echo htmlspecialchars($user['name']); ?>" 
-                             class="avatar">
+                <div class="profile-dropdown">
+                    <button class="user-profile-btn" onclick="toggleProfileDropdown(event)">
+                        <?php
+                        $navAvatar = $user['avatar'];
+                        if (!empty($navAvatar) && strpos($navAvatar, 'http') !== 0) {
+                            $navAvatar = '../../' . $navAvatar;
+                        }
+                        ?>
+                        <?php if (!empty($navAvatar)): ?>
+                            <img src="<?php echo htmlspecialchars($navAvatar); ?>"
+                                alt="<?php echo htmlspecialchars($user['name']); ?>"
+                                class="avatar">
+                        <?php else: ?>
+                            <i class="fas fa-user-circle" style="font-size: 1.5rem;"></i>
+                        <?php endif; ?>
                         <span><?php echo htmlspecialchars($user['name']); ?></span>
-                    </a>
-                <a href="logout.php">Keluar</a>
+                        <i class="fas fa-chevron-down" style="font-size: 0.8rem; margin-left: 0.3rem;"></i>
+                    </button>
+                    <div class="profile-dropdown-menu" id="profileDropdownMenu">
+                        <a href="profile.php" class="dropdown-item">
+                            <i class="fas fa-user"></i>
+                            <span>Lihat Profil</span>
+                        </a>
+                        <a href="../auth/logout.php" class="dropdown-item">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Sign Out</span>
+                        </a>
+                    </div>
+                </div>
             </nav>
         </div>
     </header>
@@ -63,10 +85,23 @@ closeDBConnection($conn);
         <!-- Profile Header -->
         <div class="card" style="padding: 2rem; margin-bottom: 2rem;">
             <div style="display: flex; align-items: center; gap: 2rem;">
-                <img src="<?php echo htmlspecialchars($user['avatar']); ?>"
-                    alt="<?php echo htmlspecialchars($user['name']); ?>"
-                    style="width: 100px; height: 100px; border-radius: 50%; border: 4px solid var(--color-primary);"
-                    onerror="this.src='https://api.dicebear.com/7.x/avataaars/svg?seed=User'">
+                <?php
+                // Handle avatar path - add ../../ prefix for local uploads
+                $avatarSrc = $user['avatar'];
+                if (!empty($avatarSrc) && strpos($avatarSrc, 'http') !== 0) {
+                    // Local file, add relative path
+                    $avatarSrc = '../../' . $avatarSrc;
+                }
+                ?>
+                <?php if (!empty($avatarSrc)): ?>
+                    <img src="<?php echo htmlspecialchars($avatarSrc); ?>"
+                        alt="<?php echo htmlspecialchars($user['name']); ?>"
+                        style="width: 100px; height: 100px; border-radius: 50%; border: 4px solid var(--color-primary); object-fit: cover;">
+                <?php else: ?>
+                    <div style="width: 100px; height: 100px; border-radius: 50%; border: 4px solid var(--color-primary); background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%); display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-user" style="font-size: 3rem; color: white;"></i>
+                    </div>
+                <?php endif; ?>
                 <div style="flex: 1;">
                     <h1 style="margin-bottom: 0.5rem;"><?php echo htmlspecialchars($user['name']); ?></h1>
                     <p class="text-gray" style="margin-bottom: 0.5rem;">
@@ -112,12 +147,12 @@ closeDBConnection($conn);
             <?php if (count($myRecipes) > 0): ?>
                 <div class="grid recipe-grid">
                     <?php foreach ($myRecipes as $recipe): ?>
-                        <div class="card recipe-card" onclick="window.location.href='recipe_detail.php?id=<?php echo $recipe['id']; ?>'">
+                        <div class="card recipe-card" onclick="window.location.href='../recipe/recipe_detail.php?id=<?php echo $recipe['id']; ?>'">
                             <div class="recipe-card-image-wrapper">
                                 <img src="<?php echo htmlspecialchars($recipe['image']); ?>"
                                     alt="<?php echo htmlspecialchars($recipe['title']); ?>"
                                     class="recipe-card-image"
-                                    onerror="this.src='assets/images/placeholder.jpg'">
+                                    onerror="this.src='../../assets/images/placeholder.jpg'">
                                 <span class="recipe-card-badge"><?php echo htmlspecialchars($recipe['category']); ?></span>
                             </div>
                             <div class="card-content">
@@ -153,12 +188,12 @@ closeDBConnection($conn);
             <?php if (count($likedRecipes) > 0): ?>
                 <div class="grid recipe-grid">
                     <?php foreach ($likedRecipes as $recipe): ?>
-                        <div class="card recipe-card" onclick="window.location.href='recipe_detail.php?id=<?php echo $recipe['id']; ?>'">
+                        <div class="card recipe-card" onclick="window.location.href='../recipe/recipe_detail.php?id=<?php echo $recipe['id']; ?>'">
                             <div class="recipe-card-image-wrapper">
                                 <img src="<?php echo htmlspecialchars($recipe['image']); ?>"
                                     alt="<?php echo htmlspecialchars($recipe['title']); ?>"
                                     class="recipe-card-image"
-                                    onerror="this.src='assets/images/placeholder.jpg'">
+                                    onerror="this.src='../../assets/images/placeholder.jpg'">
                                 <span class="recipe-card-badge"><?php echo htmlspecialchars($recipe['category']); ?></span>
                             </div>
                             <div class="card-content">
@@ -216,9 +251,8 @@ closeDBConnection($conn);
             activeButton.style.color = 'var(--color-primary)';
         }
     </script>
+    <script src="../../assets/js/dropdown.js"></script>
     <?php include '../../includes/footer.php'; ?>
 </body>
 
 </html>
-
-

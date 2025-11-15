@@ -86,15 +86,37 @@ closeDBConnection($conn);
             <nav class="nav-links">
                 <a href="../../index.php" class="<?php echo isActivePage('index.php'); ?>">Beranda</a>
                 <?php if ($user): ?>
-                    <a href="profile.php" class="user-profile-link <?php echo isActivePage('profile.php'); ?>">
-                        <img src="<?php echo htmlspecialchars($user['avatar'] ?: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' . urlencode($user['name'])); ?>" 
-                             alt="<?php echo htmlspecialchars($user['name']); ?>" 
-                             class="avatar">
-                        <span><?php echo htmlspecialchars($user['name']); ?></span>
-                    </a>
-                    <a href="logout.php">Keluar</a>
+                    <div class="profile-dropdown">
+                        <button class="user-profile-btn" onclick="toggleProfileDropdown(event)">
+                            <?php
+                            $navAvatar = $user['avatar'];
+                            if (!empty($navAvatar) && strpos($navAvatar, 'http') !== 0) {
+                                $navAvatar = '../../' . $navAvatar;
+                            }
+                            ?>
+                            <?php if (!empty($navAvatar)): ?>
+                                <img src="<?php echo htmlspecialchars($navAvatar); ?>"
+                                    alt="<?php echo htmlspecialchars($user['name']); ?>"
+                                    class="avatar">
+                            <?php else: ?>
+                                <i class="fas fa-user-circle" style="font-size: 1.5rem;"></i>
+                            <?php endif; ?>
+                            <span><?php echo htmlspecialchars($user['name']); ?></span>
+                            <i class="fas fa-chevron-down" style="font-size: 0.8rem; margin-left: 0.3rem;"></i>
+                        </button>
+                        <div class="profile-dropdown-menu" id="profileDropdownMenu">
+                            <a href="../user/profile.php" class="dropdown-item">
+                                <i class="fas fa-user"></i>
+                                <span>Lihat Profil</span>
+                            </a>
+                            <a href="../auth/logout.php" class="dropdown-item">
+                                <i class="fas fa-sign-out-alt"></i>
+                                <span>Sign Out</span>
+                            </a>
+                        </div>
+                    </div>
                 <?php else: ?>
-                    <a href="login.php" class="btn btn-sm btn-secondary">Masuk</a>
+                    <a href="../auth/login.php" class="btn btn-sm btn-secondary">Masuk</a>
                 <?php endif; ?>
             </nav>
         </div>
@@ -128,11 +150,23 @@ closeDBConnection($conn);
         </div>
 
         <!-- Hero Image -->
+        <?php
+        $recipeImage = $recipe['image'];
+        if (!empty($recipeImage) && strpos($recipeImage, 'http') !== 0) {
+            $recipeImage = '../../' . $recipeImage;
+        }
+        ?>
         <div style="position: relative; height: 400px; border-radius: 1rem; overflow: hidden; margin-bottom: 2rem; box-shadow: var(--shadow-xl);">
-            <img src="<?php echo htmlspecialchars($recipe['image']); ?>"
-                alt="<?php echo htmlspecialchars($recipe['title']); ?>"
-                style="width: 100%; height: 100%; object-fit: cover;"
-                onerror="this.src='assets/images/placeholder.jpg'">
+            <?php if (!empty($recipe['image'])): ?>
+                <img src="<?php echo htmlspecialchars($recipeImage); ?>"
+                    alt="<?php echo htmlspecialchars($recipe['title']); ?>"
+                    style="width: 100%; height: 100%; object-fit: cover;"
+                    onerror="this.src='../../assets/images/placeholder.jpg'">
+            <?php else: ?>
+                <div style="width: 100%; height: 100%; background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%); display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-utensils" style="font-size: 5rem; color: white; opacity: 0.5;"></i>
+                </div>
+            <?php endif; ?>
         </div>
 
         <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
@@ -257,10 +291,21 @@ closeDBConnection($conn);
                                 <div class="card">
                                     <div class="card-content">
                                         <div style="display: flex; gap: 1rem; margin-bottom: 0.75rem;">
-                                            <img src="<?php echo htmlspecialchars($review['author_avatar']); ?>"
-                                                alt="<?php echo htmlspecialchars($review['author_name']); ?>"
-                                                style="width: 2.5rem; height: 2.5rem; border-radius: 50%;"
-                                                onerror="this.src='https://api.dicebear.com/7.x/avataaars/svg?seed=User'">
+                                            <?php
+                                            $reviewAvatar = $review['author_avatar'];
+                                            if (!empty($reviewAvatar) && strpos($reviewAvatar, 'http') !== 0) {
+                                                $reviewAvatar = '../../' . $reviewAvatar;
+                                            }
+                                            ?>
+                                            <?php if (!empty($review['author_avatar'])): ?>
+                                                <img src="<?php echo htmlspecialchars($reviewAvatar); ?>"
+                                                    alt="<?php echo htmlspecialchars($review['author_name']); ?>"
+                                                    style="width: 2.5rem; height: 2.5rem; border-radius: 50%; object-fit: cover;">
+                                            <?php else: ?>
+                                                <div style="width: 2.5rem; height: 2.5rem; border-radius: 50%; background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%); display: flex; align-items: center; justify-content: center;">
+                                                    <i class="fas fa-user" style="font-size: 1rem; color: white;"></i>
+                                                </div>
+                                            <?php endif; ?>
                                             <div style="flex: 1;">
                                                 <div style="display: flex; justify-content: space-between; align-items: start;">
                                                     <div>
@@ -378,13 +423,12 @@ closeDBConnection($conn);
 
         function confirmDelete(recipeId) {
             if (confirm('Apakah Anda yakin ingin menghapus resep ini?')) {
-                window.location.href = 'api/delete_recipe.php?id=' + recipeId;
+                window.location.href = '../../api/delete_recipe.php?id=' + recipeId;
             }
         }
     </script>
+    <script src="../../assets/js/dropdown.js"></script>
     <?php include '../../includes/footer.php'; ?>
 </body>
 
 </html>
-
-

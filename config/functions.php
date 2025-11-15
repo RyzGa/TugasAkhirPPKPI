@@ -57,10 +57,10 @@ function sanitizeInput($data)
     return $data;
 }
 
-// Generate avatar URL
+// Generate avatar URL - returns empty string (no longer using generated avatars)
 function generateAvatarUrl($seed)
 {
-    return "https://api.dicebear.com/7.x/avataaars/svg?seed=" . urlencode($seed);
+    return ""; // Return empty string, icon will be shown instead
 }
 
 // Resize image to fit within max width/height while preserving aspect ratio.

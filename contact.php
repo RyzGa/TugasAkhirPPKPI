@@ -28,13 +28,29 @@ $user = getCurrentUser();
                 <a href="about.php" class="<?php echo isActivePage('about.php'); ?>">Tentang</a>
                 <a href="contact.php" class="<?php echo isActivePage('contact.php'); ?>">Kontak</a>
                 <?php if ($user): ?>
-                    <a href="pages/user/profile.php" class="user-profile-link <?php echo isActivePage('profile.php'); ?>">
-                        <img src="<?php echo htmlspecialchars($user['avatar'] ?: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' . urlencode($user['name'])); ?>" 
-                             alt="<?php echo htmlspecialchars($user['name']); ?>" 
-                             class="avatar">
-                        <span><?php echo htmlspecialchars($user['name']); ?></span>
-                    </a>
-                    <a href="pages/auth/logout.php">Keluar</a>
+                    <div class="profile-dropdown">
+                        <button class="user-profile-btn" onclick="toggleProfileDropdown(event)">
+                            <?php if (!empty($user['avatar'])): ?>
+                                <img src="<?php echo htmlspecialchars($user['avatar']); ?>"
+                                    alt="<?php echo htmlspecialchars($user['name']); ?>"
+                                    class="avatar">
+                            <?php else: ?>
+                                <i class="fas fa-user-circle" style="font-size: 1.5rem;"></i>
+                            <?php endif; ?>
+                            <span><?php echo htmlspecialchars($user['name']); ?></span>
+                            <i class="fas fa-chevron-down" style="font-size: 0.8rem; margin-left: 0.3rem;"></i>
+                        </button>
+                        <div class="profile-dropdown-menu" id="profileDropdownMenu">
+                            <a href="pages/user/profile.php" class="dropdown-item">
+                                <i class="fas fa-user"></i>
+                                <span>Lihat Profil</span>
+                            </a>
+                            <a href="pages/auth/logout.php" class="dropdown-item">
+                                <i class="fas fa-sign-out-alt"></i>
+                                <span>Sign Out</span>
+                            </a>
+                        </div>
+                    </div>
                 <?php else: ?>
                     <a href="pages/auth/login.php" class="btn btn-sm btn-secondary">Masuk</a>
                 <?php endif; ?>
@@ -92,6 +108,8 @@ $user = getCurrentUser();
             </div>
         </div>
     </div>
+
+    <script src="assets/js/dropdown.js"></script>
     <?php include 'includes/footer.php'; ?>
 </body>
 

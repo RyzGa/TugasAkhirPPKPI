@@ -48,13 +48,35 @@ closeDBConnection($conn);
             <nav class="nav-links">
                 <a href="../../index.php" class="<?php echo isActivePage('index.php'); ?>">Beranda</a>
                 <a href="admin.php" class="<?php echo isActivePage('admin.php'); ?>"><i class="fas fa-shield-alt"></i> Admin</a>
-                <a href="../user/profile.php" class="user-profile-link <?php echo isActivePage('profile.php'); ?>">
-                    <img src="<?php echo htmlspecialchars($user['avatar'] ?: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' . urlencode($user['name'])); ?>" 
-                         alt="<?php echo htmlspecialchars($user['name']); ?>" 
-                         class="avatar">
-                    <span><?php echo htmlspecialchars($user['name']); ?></span>
-                </a>
-                <a href="../auth/logout.php">Keluar</a>
+                <div class="profile-dropdown">
+                    <button class="user-profile-btn" onclick="toggleProfileDropdown(event)">
+                        <?php
+                        $navAvatar = $user['avatar'];
+                        if (!empty($navAvatar) && strpos($navAvatar, 'http') !== 0) {
+                            $navAvatar = '../../' . $navAvatar;
+                        }
+                        ?>
+                        <?php if (!empty($navAvatar)): ?>
+                            <img src="<?php echo htmlspecialchars($navAvatar); ?>"
+                                alt="<?php echo htmlspecialchars($user['name']); ?>"
+                                class="avatar">
+                        <?php else: ?>
+                            <i class="fas fa-user-circle" style="font-size: 1.5rem;"></i>
+                        <?php endif; ?>
+                        <span><?php echo htmlspecialchars($user['name']); ?></span>
+                        <i class="fas fa-chevron-down" style="font-size: 0.8rem; margin-left: 0.3rem;"></i>
+                    </button>
+                    <div class="profile-dropdown-menu" id="profileDropdownMenu">
+                        <a href="../user/profile.php" class="dropdown-item">
+                            <i class="fas fa-user"></i>
+                            <span>Lihat Profil</span>
+                        </a>
+                        <a href="../auth/logout.php" class="dropdown-item">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Sign Out</span>
+                        </a>
+                    </div>
+                </div>
             </nav>
         </div>
     </header>
@@ -166,9 +188,8 @@ closeDBConnection($conn);
             }
         }
     </script>
+    <script src="../../assets/js/dropdown.js"></script>
     <?php include '../../includes/footer.php'; ?>
 </body>
 
 </html>
-
-

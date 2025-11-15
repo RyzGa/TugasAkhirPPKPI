@@ -11,33 +11,70 @@ $success = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $title = sanitizeInput($_POST['title']);
     $description = sanitizeInput($_POST['description']);
-    $image = sanitizeInput($_POST['image']);
+    $image = ''; // Default empty
     $cookingTime = sanitizeInput($_POST['cooking_time']);
     $category = sanitizeInput($_POST['category']);
     $region = sanitizeInput($_POST['region']);
 
-    // Parse ingredients and steps (one per line)
+    // Handle file upload
+    if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+        $allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+        $maxSize = 5 * 1024 * 1024; 
+
+        if (!in_array($_FILES['image']['type'], $allowedTypes)) {
+            $error = 'Format file tidak didukung. Gunakan JPG, PNG, atau WEBP.';
+        } elseif ($_FILES['image']['size'] > $maxSize) {
+            $error = 'Ukuran file terlalu besar. Maksimal 5MB.';
+        } else {
+            $uploadDir = dirname(dirname(__DIR__)) . '/uploads/recipes/';
+            if (!file_exists($uploadDir)) {
+                mkdir($uploadDir, 0777, true);
+            }
+
+            $extension = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
+            $filename = time() . '_' . bin2hex(random_bytes(6)) . '.' . $extension;
+            $uploadPath = $uploadDir . $filename;
+
+            if (move_uploaded_file($_FILES['image']['tmp_name'], $uploadPath)) {
+                $resizedPath = $uploadDir . 'resized_' . $filename;
+                if (resizeImage($uploadPath, $resizedPath, 800, 600)) {
+                    unlink($uploadPath); 
+                    $image = 'uploads/recipes/resized_' . $filename;
+                } else {
+                    $image = 'uploads/recipes/' . $filename;
+                }
+            } else {
+                $error = 'Gagal mengupload gambar.';
+            }
+        }
+    }
+    
     $ingredients = array_filter(array_map('trim', explode("\n", $_POST['ingredients'])));
     $steps = array_filter(array_map('trim', explode("\n", $_POST['steps'])));
 
-    if (empty($title) || empty($description) || count($ingredients) === 0 || count($steps) === 0) {
+    if (empty($error) && (empty($title) || empty($description) || count($ingredients) === 0 || count($steps) === 0)) {
         $error = 'Mohon lengkapi semua field yang diperlukan!';
-    } else {
+    } elseif (empty($error)) {
         $conn = getDBConnection();
 
         $ingredientsJson = json_encode($ingredients);
         $stepsJson = json_encode($steps);
 
         $stmt = $conn->prepare("INSERT INTO recipes (title, description, image, author_id, author_name, author_avatar, cooking_time, category, region, ingredients, steps) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("sssississss", $title, $description, $image, $user['id'], $user['name'], $user['avatar'], $cookingTime, $category, $region, $ingredientsJson, $stepsJson);
 
-        if ($stmt->execute()) {
-            $success = 'Resep berhasil ditambahkan!';
-            $newRecipeId = $stmt->insert_id;
-            header("Location: recipe_detail.php?id=$newRecipeId");
-            exit;
+        if (!$stmt) {
+            $error = 'Database prepare error: ' . $conn->error;
         } else {
-            $error = 'Terjadi kesalahan saat menambahkan resep.';
+            $stmt->bind_param("sssisssssss", $title, $description, $image, $user['id'], $user['name'], $user['avatar'], $cookingTime, $category, $region, $ingredientsJson, $stepsJson);
+
+            if ($stmt->execute()) {
+                $success = 'Resep berhasil ditambahkan!';
+                $newRecipeId = $stmt->insert_id;
+                header("Location: recipe_detail.php?id=$newRecipeId");
+                exit;
+            } else {
+                $error = 'Terjadi kesalahan saat menambahkan resep: ' . $stmt->error;
+            }
         }
 
         closeDBConnection($conn);
@@ -67,13 +104,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </a>
             <nav class="nav-links">
                 <a href="../../index.php" class="<?php echo isActivePage('index.php'); ?>">Beranda</a>
-                <a href="profile.php" class="user-profile-link <?php echo isActivePage('profile.php'); ?>">
-                    <img src="<?php echo htmlspecialchars($user['avatar'] ?: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' . urlencode($user['name'])); ?>" 
-                         alt="<?php echo htmlspecialchars($user['name']); ?>" 
-                         class="avatar">
-                    <span><?php echo htmlspecialchars($user['name']); ?></span>
-                </a>
-                <a href="logout.php">Keluar</a>
+                <div class="profile-dropdown">
+                    <button class="user-profile-btn" onclick="toggleProfileDropdown(event)">
+                        <?php
+                        $navAvatar = $user['avatar'];
+                        if (!empty($navAvatar) && strpos($navAvatar, 'http') !== 0) {
+                            $navAvatar = '../../' . $navAvatar;
+                        }
+                        ?>
+                        <?php if (!empty($navAvatar)): ?>
+                            <img src="<?php echo htmlspecialchars($navAvatar); ?>"
+                                alt="<?php echo htmlspecialchars($user['name']); ?>"
+                                class="avatar">
+                        <?php else: ?>
+                            <i class="fas fa-user-circle" style="font-size: 1.5rem;"></i>
+                        <?php endif; ?>
+                        <span><?php echo htmlspecialchars($user['name']); ?></span>
+                        <i class="fas fa-chevron-down" style="font-size: 0.8rem; margin-left: 0.3rem;"></i>
+                    </button>
+                    <div class="profile-dropdown-menu" id="profileDropdownMenu">
+                        <a href="../user/profile.php" class="dropdown-item">
+                            <i class="fas fa-user"></i>
+                            <span>Lihat Profil</span>
+                        </a>
+                        <a href="../auth/logout.php" class="dropdown-item">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Sign Out</span>
+                        </a>
+                    </div>
+                </div>
             </nav>
         </div>
     </header>
@@ -90,10 +149,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <p class="text-gray" style="margin-bottom: 2rem;">Bagikan resep masakan favorit Anda dengan komunitas Nusa Bites</p>
 
             <?php if ($error): ?>
-                <div class="alert alert-error"><?php echo $error; ?></div>
+                <div class="alert alert-error"><?php echo htmlspecialchars($error); ?></div>
             <?php endif; ?>
 
-            <form method="POST" action="">
+            <?php if ($success): ?>
+                <div class="alert alert-success"><?php echo htmlspecialchars($success); ?></div>
+            <?php endif; ?>
+
+            <form method="POST" action="" enctype="multipart/form-data">
                 <div class="form-group">
                     <label for="title" class="form-label">Judul Resep *</label>
                     <input type="text" id="title" name="title" class="form-input" required
@@ -108,11 +171,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
 
                 <div class="form-group">
-                    <label for="image" class="form-label">URL Gambar</label>
-                    <input type="url" id="image" name="image" class="form-input"
-                        placeholder="https://example.com/image.jpg"
-                        value="<?php echo isset($_POST['image']) ? htmlspecialchars($_POST['image']) : ''; ?>">
-                    <small class="text-gray">Kosongkan jika tidak ada gambar</small>
+                    <label for="image" class="form-label">Gambar Resep</label>
+                    <input type="file" id="image" name="image" class="form-input" accept="image/jpeg,image/png,image/webp,image/jpg">
+                    <small class="text-gray">Upload gambar resep (JPG, PNG, atau WEBP, maksimal 5MB). Kosongkan jika tidak ada gambar.</small>
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
@@ -169,9 +230,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </form>
         </div>
     </div>
+
+    <script src="../../assets/js/dropdown.js"></script>
     <?php include '../../includes/footer.php'; ?>
 </body>
 
 </html>
-
-
