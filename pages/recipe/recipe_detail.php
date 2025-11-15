@@ -181,9 +181,23 @@ closeDBConnection($conn);
 
                     <h1 style="margin-bottom: 1rem;"><?php echo htmlspecialchars($recipe['title']); ?></h1>
 
-                    <div style="display: flex; gap: 1.5rem; color: var(--color-text-gray); margin-bottom: 1rem;">
+                    <div style="display: flex; gap: 1.5rem; color: var(--color-text-gray); margin-bottom: 1rem; align-items: center;">
                         <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <i class="fas fa-user"></i>
+                            <?php
+                            $authorAvatar = $recipe['author_avatar'];
+                            if (!empty($authorAvatar) && strpos($authorAvatar, 'http') !== 0) {
+                                $authorAvatar = '../../' . $authorAvatar;
+                            }
+                            ?>
+                            <?php if (!empty($recipe['author_avatar'])): ?>
+                                <img src="<?php echo htmlspecialchars($authorAvatar); ?>"
+                                    alt="<?php echo htmlspecialchars($recipe['author_name']); ?>"
+                                    style="width: 2rem; height: 2rem; border-radius: 50%; object-fit: cover;">
+                            <?php else: ?>
+                                <div style="width: 2rem; height: 2rem; border-radius: 50%; background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%); display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-user" style="font-size: 0.875rem; color: white;"></i>
+                                </div>
+                            <?php endif; ?>
                             <span><?php echo htmlspecialchars($recipe['author_name']); ?></span>
                         </div>
                         <div style="display: flex; align-items: center; gap: 0.5rem;">
