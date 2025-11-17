@@ -19,38 +19,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Handle file upload
     if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
         $allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
-        $maxSize = 5 * 1024 * 1024; 
+        $maxSize = 5 * 1024 * 1024;
 
         if (!in_array($_FILES['image']['type'], $allowedTypes)) {
             $error = 'Format file tidak didukung. Gunakan JPG, PNG, atau WEBP.';
         } elseif ($_FILES['image']['size'] > $maxSize) {
             $error = 'Ukuran file terlalu besar. Maksimal 5MB.';
         } else {
-            $uploadDir = dirname(dirname(__DIR__)) . '/uploads/recipes/';
-            if (!file_exists($uploadDir)) {
-                mkdir($uploadDir, 0777, true);
-            }
+            // Upload to Cloudinary
+            $cloudinaryResult = uploadToCloudinary($_FILES['image']['tmp_name'], 'nusabites/recipes');
 
-            $extension = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
-            $filename = time() . '_' . bin2hex(random_bytes(6)) . '.' . $extension;
-            $uploadPath = $uploadDir . $filename;
-
-            if (move_uploaded_file($_FILES['image']['tmp_name'], $uploadPath)) {
-                $resizedPath = $uploadDir . 'resized_' . $filename;
-                if (resizeImage($uploadPath, $resizedPath, 800, 600)) {
-                    unlink($uploadPath); 
-                    $image = 'uploads/recipes/resized_' . $filename;
-                } else {
-                    $image = 'uploads/recipes/' . $filename;
-                }
+            if ($cloudinaryResult) {
+                $image = $cloudinaryResult['secure_url'];
             } else {
-                $error = 'Gagal mengupload gambar.';
+                $error = 'Gagal mengupload gambar ke Cloudinary.';
             }
         }
     }
-    
-    $ingredients = array_filter(array_map('trim', explode("\n", $_POST['ingredients'])));
-    $steps = array_filter(array_map('trim', explode("\n", $_POST['steps'])));
+
+    // Parse ingredients and steps from array
+    $ingredients = isset($_POST['ingredients']) ? array_filter(array_map('trim', $_POST['ingredients'])) : [];
+    $steps = isset($_POST['steps']) ? array_filter(array_map('trim', $_POST['steps'])) : [];
 
     if (empty($error) && (empty($title) || empty($description) || count($ingredients) === 0 || count($steps) === 0)) {
         $error = 'Mohon lengkapi semua field yang diperlukan!';
@@ -209,16 +198,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 </div>
 
+                <!-- Bahan-Bahan Section -->
                 <div class="form-group">
-                    <label for="ingredients" class="form-label">Bahan-Bahan * <small class="text-gray">(Satu bahan per baris)</small></label>
-                    <textarea id="ingredients" name="ingredients" class="form-textarea" required style="min-height: 200px;"
-                        placeholder="500g daging sapi&#10;3 siung bawang putih&#10;5 siung bawang merah&#10;2 sdm kecap manis"><?php echo isset($_POST['ingredients']) ? htmlspecialchars($_POST['ingredients']) : ''; ?></textarea>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <label class="form-label" style="margin: 0;">Bahan-Bahan</label>
+                        <button type="button" class="btn btn-secondary" onclick="addIngredient()" style="padding: 0.5rem 1rem;">
+                            <i class="fas fa-plus"></i> Tambah Bahan
+                        </button>
+                    </div>
+                    <div id="ingredientsList" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                        <div class="ingredient-item" style="display: flex; gap: 0.5rem; align-items: center;">
+                            <input type="text" name="ingredients[]" class="form-input" placeholder="Masukkan bahan" required>
+                            <button type="button" class="btn" onclick="removeIngredient(this)" style="background: transparent; color: var(--color-text-gray); padding: 0.5rem; min-width: auto;">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
+                <!-- Langkah-Langkah Section -->
                 <div class="form-group">
-                    <label for="steps" class="form-label">Langkah-Langkah * <small class="text-gray">(Satu langkah per baris)</small></label>
-                    <textarea id="steps" name="steps" class="form-textarea" required style="min-height: 250px;"
-                        placeholder="Potong daging menjadi ukuran sesuai selera&#10;Haluskan bawang putih dan bawang merah&#10;Tumis bumbu halus hingga harum"><?php echo isset($_POST['steps']) ? htmlspecialchars($_POST['steps']) : ''; ?></textarea>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <label class="form-label" style="margin: 0;">Langkah-Langkah</label>
+                        <button type="button" class="btn btn-secondary" onclick="addStep()" style="padding: 0.5rem 1rem;">
+                            <i class="fas fa-plus"></i> Tambah Langkah
+                        </button>
+                    </div>
+                    <div id="stepsList" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                        <div class="step-item" style="display: flex; gap: 0.5rem; align-items: center;">
+                            <div style="width: 2.5rem; height: 2.5rem; border-radius: 50%; background: var(--color-primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; flex-shrink: 0;">
+                                1
+                            </div>
+                            <input type="text" name="steps[]" class="form-input" placeholder="Masukkan langkah" required>
+                            <button type="button" class="btn" onclick="removeStep(this)" style="background: transparent; color: var(--color-text-gray); padding: 0.5rem; min-width: auto;">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <div style="display: flex; gap: 1rem; justify-content: flex-end;">
@@ -231,6 +247,71 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
 
+    <script>
+        // Add Ingredient
+        function addIngredient() {
+            const list = document.getElementById('ingredientsList');
+            const item = document.createElement('div');
+            item.className = 'ingredient-item';
+            item.style.cssText = 'display: flex; gap: 0.5rem; align-items: center;';
+            item.innerHTML = `
+                <input type="text" name="ingredients[]" class="form-input" placeholder="Masukkan bahan" required>
+                <button type="button" class="btn" onclick="removeIngredient(this)" style="background: transparent; color: var(--color-text-gray); padding: 0.5rem; min-width: auto;">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            list.appendChild(item);
+        }
+
+        // Remove Ingredient
+        function removeIngredient(button) {
+            const list = document.getElementById('ingredientsList');
+            if (list.children.length > 1) {
+                button.parentElement.remove();
+            } else {
+                alert('Minimal harus ada 1 bahan!');
+            }
+        }
+
+        // Add Step
+        function addStep() {
+            const list = document.getElementById('stepsList');
+            const stepNumber = list.children.length + 1;
+            const item = document.createElement('div');
+            item.className = 'step-item';
+            item.style.cssText = 'display: flex; gap: 0.5rem; align-items: center;';
+            item.innerHTML = `
+                <div style="width: 2.5rem; height: 2.5rem; border-radius: 50%; background: var(--color-primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; flex-shrink: 0;">
+                    ${stepNumber}
+                </div>
+                <input type="text" name="steps[]" class="form-input" placeholder="Masukkan langkah" required>
+                <button type="button" class="btn" onclick="removeStep(this)" style="background: transparent; color: var(--color-text-gray); padding: 0.5rem; min-width: auto;">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            list.appendChild(item);
+        }
+
+        // Remove Step
+        function removeStep(button) {
+            const list = document.getElementById('stepsList');
+            if (list.children.length > 1) {
+                button.parentElement.remove();
+                updateStepNumbers();
+            } else {
+                alert('Minimal harus ada 1 langkah!');
+            }
+        }
+
+        // Update Step Numbers
+        function updateStepNumbers() {
+            const steps = document.querySelectorAll('#stepsList .step-item');
+            steps.forEach((step, index) => {
+                const numberDiv = step.querySelector('div');
+                numberDiv.textContent = index + 1;
+            });
+        }
+    </script>
     <script src="../../assets/js/dropdown.js"></script>
     <?php include '../../includes/footer.php'; ?>
 </body>

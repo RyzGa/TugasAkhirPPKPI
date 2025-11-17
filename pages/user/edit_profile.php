@@ -48,31 +48,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         if (!isset($allowed[$mime])) {
                             $error = 'Tipe gambar tidak didukung. Gunakan JPG, PNG, atau WEBP.';
                         } else {
-                            $ext = $allowed[$mime];
-                            // Upload ke root project/uploads/avatars/, bukan pages/user/uploads/
-                            $uploadDir = dirname(dirname(__DIR__)) . '/uploads/avatars';
-                            if (!is_dir($uploadDir)) {
-                                mkdir($uploadDir, 0755, true);
-                            }
-                            try {
-                                $random = bin2hex(random_bytes(6));
-                            } catch (Exception $e) {
-                                $random = time();
-                            }
-                            $filename = time() . '_' . $random . '.' . $ext;
-                            $dest = $uploadDir . '/' . $filename;
-                            if (move_uploaded_file($tmp, $dest)) {
-                                // Resize the saved image to limit dimensions
-                                $webPath = 'uploads/avatars/' . $filename;
-                                $fullPath = dirname(dirname(__DIR__)) . '/' . $webPath;
-                                // Attempt resize; if failed, keep original
-                                if (function_exists('resizeImage')) {
-                                    @resizeImage($fullPath, $fullPath, 400, 400);
+                            // Upload to Cloudinary
+                            $cloudinaryResult = uploadToCloudinary($tmp, 'nusabites/avatars');
+
+                            if ($cloudinaryResult) {
+                                // Delete old avatar from Cloudinary if exists
+                                if (!empty($user['avatar']) && strpos($user['avatar'], 'cloudinary.com') !== false) {
+                                    // Extract public_id from URL
+                                    preg_match('/\/([^\/]+)\.(jpg|png|webp)$/', $user['avatar'], $matches);
+                                    if (isset($matches[1])) {
+                                        deleteFromCloudinary('nusabites/avatars/' . $matches[1]);
+                                    }
                                 }
-                                // Store web-accessible path (relatif ke root)
-                                $avatar = $webPath;
+
+                                // Store Cloudinary URL
+                                $avatar = $cloudinaryResult['secure_url'];
                             } else {
-                                $error = 'Gagal menyimpan file gambar.';
+                                $error = 'Gagal mengupload gambar ke Cloudinary.';
                             }
                         }
                     }

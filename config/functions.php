@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once 'database.php';
+require_once 'cloudinary.php';
 
 // Check if user is logged in
 function isLoggedIn()
