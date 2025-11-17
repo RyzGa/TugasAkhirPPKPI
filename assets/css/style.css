@@ -8,7 +8,7 @@
 :root {
   --color-primary: #ea580c;
   --color-primary-dark: #c2410c;
-  --color-secondary: #f97316;
+  --color-secondary: #000000ff;
   --color-bg-light: #fafafa;
   --color-bg-white: #ffffff;
   --color-text-dark: #1f2937;
@@ -94,17 +94,16 @@ p {
 }
 
 .logo-icon {
-  background: linear-gradient(
-    135deg,
-    var(--color-primary) 0%,
-    var(--color-secondary) 100%
-  );
-  padding: 0.5rem;
-  border-radius: 0.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+}
+
+.logo-icon img {
+  height: 24px;
+  width: auto;
+  object-fit: contain;
+  display: block;
 }
 
 .search-bar {

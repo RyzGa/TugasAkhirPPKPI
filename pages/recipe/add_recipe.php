@@ -86,10 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <header class="header">
         <div class="container header-content">
             <a href="../../index.php" class="logo">
-                <div class="logo-icon">
-                    <i class="fas fa-hat-chef" style="font-size: 1.5rem;"></i>
-                </div>
-                <span>Nusa Bites</span>
+                <img src="../../assets/images/logo.png" alt="NusaBites Logo" style="height: 40px;">
             </a>
             <nav class="nav-links">
                 <a href="../../index.php" class="<?php echo isActivePage('index.php'); ?>">Beranda</a>

@@ -37,6 +37,17 @@ $reviewStmt->bind_param("i", $recipeId);
 $reviewStmt->execute();
 $reviews = $reviewStmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
+// Hitung jumlah review yang sebenarnya
+$actualReviewCount = count($reviews);
+$actualRating = 0;
+if ($actualReviewCount > 0) {
+    $totalRating = 0;
+    foreach ($reviews as $review) {
+        $totalRating += $review['rating'];
+    }
+    $actualRating = $totalRating / $actualReviewCount;
+}
+
 // Handle review submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_review']) && $user) {
     $rating = (int)$_POST['rating'];
@@ -77,10 +88,7 @@ closeDBConnection($conn);
     <header class="header">
         <div class="container header-content">
             <a href="../../index.php" class="logo">
-                <div class="logo-icon">
-                    <i class="fas fa-hat-chef" style="font-size: 1.5rem;"></i>
-                </div>
-                <span>Nusa Bites</span>
+                <img src="../../assets/images/logo.png" alt="NusaBites Logo" style="height: 40px;">
             </a>
 
             <nav class="nav-links">
@@ -206,7 +214,7 @@ closeDBConnection($conn);
                         </div>
                         <div style="display: flex; align-items: center; gap: 0.5rem;">
                             <i class="fas fa-star star-icon"></i>
-                            <span><?php echo number_format($recipe['rating'], 1); ?> (<?php echo $recipe['review_count']; ?> review)</span>
+                            <span><?php echo $actualReviewCount > 0 ? number_format($actualRating, 1) : '0.0'; ?> (<?php echo $actualReviewCount; ?> review)</span>
                         </div>
                     </div>
 
@@ -382,8 +390,8 @@ closeDBConnection($conn);
                                 <div style="color: var(--color-text-gray); font-size: 0.875rem; margin-bottom: 0.25rem;">Rating</div>
                                 <div style="display: flex; align-items: center; gap: 0.5rem;">
                                     <i class="fas fa-star" style="color: #fbbf24; font-size: 1.25rem;"></i>
-                                    <span style="font-size: 1.5rem; font-weight: 700;"><?php echo number_format($recipe['rating'], 1); ?></span>
-                                    <span class="text-gray">(<?php echo $recipe['review_count']; ?> review)</span>
+                                    <span style="font-size: 1.5rem; font-weight: 700;"><?php echo $actualReviewCount > 0 ? number_format($actualRating, 1) : '0.0'; ?></span>
+                                    <span class="text-gray">(<?php echo $actualReviewCount; ?> review)</span>
                                 </div>
                             </div>
                         </div>

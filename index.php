@@ -14,7 +14,9 @@ $sortRating = isset($_GET['sort_rating']) ? sanitizeInput($_GET['sort_rating']) 
 
 // Build query
 $query = "SELECT r.*, 
-          (SELECT COUNT(*) FROM liked_recipes WHERE recipe_id = r.id AND user_id = ?) as is_liked
+          (SELECT COUNT(*) FROM liked_recipes WHERE recipe_id = r.id AND user_id = ?) as is_liked,
+          (SELECT COUNT(*) FROM reviews WHERE recipe_id = r.id) as actual_review_count,
+          (SELECT AVG(rating) FROM reviews WHERE recipe_id = r.id) as actual_rating
           FROM recipes r WHERE 1=1";
 $params = [$user ? $user['id'] : 0];
 $types = "i";
@@ -47,10 +49,10 @@ if (!empty($regions)) {
 // Sorting
 switch ($sortRating) {
     case 'highest':
-        $query .= " ORDER BY r.rating DESC, r.created_at DESC";
+        $query .= " ORDER BY actual_rating DESC, r.created_at DESC";
         break;
     case 'lowest':
-        $query .= " ORDER BY r.rating ASC, r.created_at DESC";
+        $query .= " ORDER BY actual_rating ASC, r.created_at DESC";
         break;
     default: // newest
         $query .= " ORDER BY r.created_at DESC";
@@ -98,10 +100,7 @@ closeDBConnection($conn);
     <header class="header">
         <div class="container header-content">
             <a href="index.php" class="logo">
-                <div class="logo-icon">
-                    <i class="fas fa-hat-chef" style="font-size: 1.5rem;"></i>
-                </div>
-                <span>Nusa Bites</span>
+                <img src="assets/images/logo.png" alt="NusaBites Logo" style="height: 40px;">
             </a>
 
             <div class="search-bar">
@@ -237,7 +236,7 @@ closeDBConnection($conn);
             <main>
                 <div style="margin-bottom: 1.5rem;">
                     <h2>Resep Masakan Nusantara</h2>
-                    <p class="text-gray">Temukan <?php echo count($recipes); ?> resep lezat dari berbagai daerah di Indonesia</p>
+                    <p class="text-gray">Temukan berbagai resep lezat dari berbagai daerah di Indonesia</p>
                 </div>
 
                 <?php if (count($recipes) > 0): ?>
@@ -278,8 +277,8 @@ closeDBConnection($conn);
 
                                         <div class="recipe-card-rating">
                                             <i class="fas fa-star star-icon"></i>
-                                            <span><?php echo number_format($recipe['rating'], 1); ?></span>
-                                            <span class="text-gray">(<?php echo $recipe['review_count']; ?>)</span>
+                                            <span><?php echo $recipe['actual_review_count'] > 0 ? number_format($recipe['actual_rating'], 1) : '0.0'; ?></span>
+                                            <span class="text-gray">(<?php echo $recipe['actual_review_count']; ?>)</span>
                                         </div>
                                     </div>
                                 </div>

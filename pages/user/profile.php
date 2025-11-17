@@ -7,14 +7,20 @@ requireLogin();
 $user = getCurrentUser();
 $conn = getDBConnection();
 
-// Get user's recipes
-$myRecipesStmt = $conn->prepare("SELECT * FROM recipes WHERE author_id = ? ORDER BY created_at DESC");
+// Get user's recipes with actual review counts and ratings
+$myRecipesStmt = $conn->prepare("SELECT r.*, 
+                                  (SELECT COUNT(*) FROM reviews WHERE recipe_id = r.id) as actual_review_count,
+                                  (SELECT AVG(rating) FROM reviews WHERE recipe_id = r.id) as actual_rating
+                                  FROM recipes r WHERE r.author_id = ? ORDER BY r.created_at DESC");
 $myRecipesStmt->bind_param("i", $user['id']);
 $myRecipesStmt->execute();
 $myRecipes = $myRecipesStmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
-// Get liked recipes
-$likedStmt = $conn->prepare("SELECT r.* FROM recipes r 
+// Get liked recipes with actual review counts and ratings
+$likedStmt = $conn->prepare("SELECT r.*, 
+                             (SELECT COUNT(*) FROM reviews WHERE recipe_id = r.id) as actual_review_count,
+                             (SELECT AVG(rating) FROM reviews WHERE recipe_id = r.id) as actual_rating
+                             FROM recipes r 
                              INNER JOIN liked_recipes l ON r.id = l.recipe_id 
                              WHERE l.user_id = ? 
                              ORDER BY l.created_at DESC");
@@ -40,10 +46,7 @@ closeDBConnection($conn);
     <header class="header">
         <div class="container header-content">
             <a href="../../index.php" class="logo">
-                <div class="logo-icon">
-                    <i class="fas fa-hat-chef" style="font-size: 1.5rem;"></i>
-                </div>
-                <span>Nusa Bites</span>
+                <img src="../../assets/images/logo.png" alt="NusaBites Logo" style="height: 40px;">
             </a>
             <nav class="nav-links">
                 <a href="../../index.php" class="<?php echo isActivePage('index.php'); ?>">Beranda</a>
@@ -164,7 +167,8 @@ closeDBConnection($conn);
                                     </div>
                                     <div class="recipe-card-rating">
                                         <i class="fas fa-star star-icon"></i>
-                                        <span><?php echo number_format($recipe['rating'], 1); ?></span>
+                                        <span><?php echo $recipe['actual_review_count'] > 0 ? number_format($recipe['actual_rating'], 1) : '0.0'; ?></span>
+                                        <span class="text-gray">(<?php echo $recipe['actual_review_count']; ?>)</span>
                                     </div>
                                 </div>
                             </div>
@@ -209,7 +213,8 @@ closeDBConnection($conn);
                                     </div>
                                     <div class="recipe-card-rating">
                                         <i class="fas fa-star star-icon"></i>
-                                        <span><?php echo number_format($recipe['rating'], 1); ?></span>
+                                        <span><?php echo $recipe['actual_review_count'] > 0 ? number_format($recipe['actual_rating'], 1) : '0.0'; ?></span>
+                                        <span class="text-gray">(<?php echo $recipe['actual_review_count']; ?>)</span>
                                     </div>
                                 </div>
                             </div>

@@ -18,10 +18,7 @@ $user = getCurrentUser();
     <header class="header">
         <div class="container header-content">
             <a href="index.php" class="logo">
-                <div class="logo-icon">
-                    <i class="fas fa-hat-chef" style="font-size: 1.5rem;"></i>
-                </div>
-                <span>Nusa Bites</span>
+                <img src="assets/images/logo.png" alt="NusaBites Logo" style="height: 40px;">
             </a>
             <nav class="nav-links">
                 <a href="index.php" class="<?php echo isActivePage('index.php'); ?>">Beranda</a>
@@ -61,8 +58,7 @@ $user = getCurrentUser();
     <div class="container" style="padding: 3rem 1rem; max-width: 900px;">
         <div class="card" style="padding: 3rem;">
             <div style="text-align: center; margin-bottom: 3rem;">
-                <div style="background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%); width: 100px; height: 100px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
-                    <i class="fas fa-hat-chef" style="font-size: 3rem; color: white;"></i>
+                <div style="margin: 0 auto 1.5rem;">
                 </div>
                 <h1>Tentang Nusa Bites</h1>
                 <p class="text-lg text-gray">Platform Resep Masakan Nusantara</p>

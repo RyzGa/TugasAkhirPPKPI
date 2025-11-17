@@ -8,17 +8,20 @@ requireAdmin();
 $user = getCurrentUser();
 $conn = getDBConnection();
 
-// Get all recipes
-$stmt = $conn->prepare("SELECT * FROM recipes ORDER BY created_at DESC");
+// Get all recipes with actual review counts and ratings
+$stmt = $conn->prepare("SELECT r.*, 
+                        (SELECT COUNT(*) FROM reviews WHERE recipe_id = r.id) as actual_review_count,
+                        (SELECT AVG(rating) FROM reviews WHERE recipe_id = r.id) as actual_rating
+                        FROM recipes r ORDER BY r.created_at DESC");
 $stmt->execute();
 $recipes = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
-// Get statistics
+// Get statistics with actual data
 $statsQuery = "SELECT 
                 (SELECT COUNT(*) FROM recipes) as total_recipes,
                 (SELECT COUNT(*) FROM users WHERE role = 'user') as total_users,
                 (SELECT COUNT(*) FROM reviews) as total_reviews,
-                (SELECT AVG(rating) FROM recipes) as avg_rating";
+                (SELECT AVG(rating) FROM reviews) as avg_rating";
 $statsResult = $conn->query($statsQuery);
 $stats = $statsResult->fetch_assoc();
 
@@ -40,10 +43,7 @@ closeDBConnection($conn);
     <header class="header">
         <div class="container header-content">
             <a href="../../index.php" class="logo">
-                <div class="logo-icon">
-                    <i class="fas fa-hat-chef" style="font-size: 1.5rem;"></i>
-                </div>
-                <span>Nusa Bites</span>
+                <img src="../../assets/images/logo.png" alt="NusaBites Logo" style="height: 40px;">
             </a>
             <nav class="nav-links">
                 <a href="../../index.php" class="<?php echo isActivePage('index.php'); ?>">Beranda</a>
@@ -151,9 +151,9 @@ closeDBConnection($conn);
                                 </td>
                                 <td style="padding: 0.75rem; text-align: center;">
                                     <i class="fas fa-star" style="color: #fbbf24;"></i>
-                                    <?php echo number_format($recipe['rating'], 1); ?>
+                                    <?php echo $recipe['actual_review_count'] > 0 ? number_format($recipe['actual_rating'], 1) : '0.0'; ?>
                                 </td>
-                                <td style="padding: 0.75rem; text-align: center;"><?php echo $recipe['review_count']; ?></td>
+                                <td style="padding: 0.75rem; text-align: center;"><?php echo $recipe['actual_review_count']; ?></td>
                                 <td style="padding: 0.75rem; text-align: center;">
                                     <div style="display: flex; gap: 0.5rem; justify-content: center;">
                                         <a href="../recipe/recipe_detail.php?id=<?php echo $recipe['id']; ?>"

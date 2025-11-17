@@ -58,11 +58,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div style="max-width: 1200px; width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: center;">
             <!-- Left side - Branding -->
             <div style="display: flex; flex-direction: column; align-items: center;">
-                <a href="../../index.php" style="display: inline-flex; align-items: center; gap: 0.75rem; text-decoration: none; margin-bottom: 2rem;">
-                    <div style="background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%); padding: 1rem; border-radius: 1rem; box-shadow: var(--shadow-lg);">
-                        <i class="fas fa-hat-chef" style="font-size: 3rem; color: white;"></i>
-                    </div>
-                </a>
                 <h1 style="text-align: center; margin-bottom: 1rem;">Selamat Datang di Nusa Bites</h1>
                 <p style="text-align: center; color: var(--color-text-gray); font-size: 1.125rem;">
                     Jelajahi ribuan resep masakan nusantara dan berbagi kreasi kuliner Anda
