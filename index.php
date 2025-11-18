@@ -332,7 +332,19 @@ closeDBConnection($conn);
     </div>
 
     <script>
+        // Log page load
+        console.log('📄 Dashboard page loaded');
+        console.log('🔍 Current filters:', {
+            search: '<?php echo $search; ?>',
+            categories: <?php echo json_encode($categories); ?>,
+            regions: <?php echo json_encode($regions); ?>,
+            sortRating: '<?php echo $sortRating; ?>',
+            showAll: <?php echo $showAll ? 'true' : 'false'; ?>
+        });
+        console.log('📊 Showing <?php echo count($recipes); ?> of <?php echo $totalRecipes; ?> recipes');
+
         function toggleLike(recipeId) {
+            console.log('❤️ Toggling like for recipe ID:', recipeId);
             fetch('api/toggle_like.php', {
                     method: 'POST',
                     headers: {
@@ -342,18 +354,61 @@ closeDBConnection($conn);
                         recipe_id: recipeId
                     })
                 })
-                .then(response => response.json())
+                .then(response => {
+                    console.log('📡 Received response from server');
+                    return response.json();
+                })
                 .then(data => {
+                    console.log('✅ Like toggle response:', data);
                     if (data.success) {
+                        console.log('🔄 Reloading page to update like status');
                         location.reload();
                     } else {
+                        console.error('❌ Like toggle failed:', data.message);
                         alert(data.message || 'Terjadi kesalahan');
                     }
                 })
                 .catch(error => {
-                    console.error('Error:', error);
+                    console.error('❌ Error toggling like:', error);
                 });
         }
+
+        // Log when recipe card is clicked
+        document.addEventListener('DOMContentLoaded', function() {
+            const recipeCards = document.querySelectorAll('.recipe-card');
+            recipeCards.forEach((card, index) => {
+                card.addEventListener('click', function() {
+                    const title = this.querySelector('.recipe-card-title')?.textContent;
+                    console.log(`🍽️ Recipe card clicked: "${title}" (index: ${index})`);
+                });
+            });
+
+            // Log filter changes
+            const filterCheckboxes = document.querySelectorAll('.filter-checkbox input');
+            filterCheckboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    console.log(`🔲 Filter changed: ${this.name} = ${this.value} (${this.checked ? 'checked' : 'unchecked'})`);
+                });
+            });
+
+            // Log sort change
+            const sortSelect = document.querySelector('select[name="sort_rating"]');
+            if (sortSelect) {
+                sortSelect.addEventListener('change', function() {
+                    console.log(`🔄 Sort changed to: ${this.value}`);
+                });
+            }
+
+            // Log search
+            const searchInput = document.querySelector('.search-input');
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    console.log(`🔍 Search input: "${this.value}"`);
+                });
+            }
+
+            console.log('✅ Dashboard event listeners initialized');
+        });
     </script>
     <script src="assets/js/dropdown.js"></script>
 

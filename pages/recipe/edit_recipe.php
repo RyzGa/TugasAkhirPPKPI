@@ -275,8 +275,46 @@ closeDBConnection($conn);
     </div>
 
     <script>
+        // Log page load
+        console.log('✏️ Edit recipe page loaded');
+        console.log('🍽️ Editing recipe ID:', <?php echo $recipeId; ?>);
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('✅ Edit recipe page initialized');
+            console.log('📊 Current recipe data:', {
+                title: '<?php echo addslashes($recipe['title']); ?>',
+                ingredientsCount: <?php echo count($ingredients); ?>,
+                stepsCount: <?php echo count($steps); ?>
+            });
+
+            // Log form submission
+            const recipeForm = document.querySelector('form');
+            if (recipeForm) {
+                recipeForm.addEventListener('submit', function() {
+                    const formData = new FormData(this);
+                    console.log('💾 Saving recipe changes');
+                    console.log('📋 Updated form data:', {
+                        title: formData.get('title'),
+                        category: formData.get('category'),
+                        region: formData.get('region'),
+                        ingredientsCount: formData.getAll('ingredients[]').length,
+                        stepsCount: formData.getAll('steps[]').length
+                    });
+                });
+            }
+
+            // Log image selection
+            const imageInput = document.querySelector('input[type="file"]');
+            if (imageInput) {
+                imageInput.addEventListener('change', function() {
+                    console.log('🖼️ New image selected:', this.files[0]?.name, `(${(this.files[0]?.size / 1024).toFixed(2)} KB)`);
+                });
+            }
+        });
+
         // Add Ingredient
         function addIngredient() {
+            console.log('➕ Adding new ingredient field');
             const list = document.getElementById('ingredientsList');
             const item = document.createElement('div');
             item.className = 'ingredient-item';
@@ -288,14 +326,18 @@ closeDBConnection($conn);
                 </button>
             `;
             list.appendChild(item);
+            console.log('✅ Ingredient field added. Total:', list.children.length);
         }
 
         // Remove Ingredient
         function removeIngredient(button) {
             const list = document.getElementById('ingredientsList');
             if (list.children.length > 1) {
+                console.log('➖ Removing ingredient field');
                 button.parentElement.remove();
+                console.log('✅ Ingredient removed. Remaining:', list.children.length);
             } else {
+                console.log('⚠️ Cannot remove last ingredient');
                 alert('Minimal harus ada 1 bahan!');
             }
         }
@@ -304,6 +346,7 @@ closeDBConnection($conn);
         function addStep() {
             const list = document.getElementById('stepsList');
             const stepNumber = list.children.length + 1;
+            console.log('➕ Adding new step field:', stepNumber);
             const item = document.createElement('div');
             item.className = 'step-item';
             item.style.cssText = 'display: flex; gap: 0.5rem; align-items: center;';
@@ -317,26 +360,32 @@ closeDBConnection($conn);
                 </button>
             `;
             list.appendChild(item);
+            console.log('✅ Step field added. Total:', list.children.length);
         }
 
         // Remove Step
         function removeStep(button) {
             const list = document.getElementById('stepsList');
             if (list.children.length > 1) {
+                console.log('➖ Removing step field');
                 button.parentElement.remove();
                 updateStepNumbers();
+                console.log('✅ Step removed. Remaining:', list.children.length);
             } else {
+                console.log('⚠️ Cannot remove last step');
                 alert('Minimal harus ada 1 langkah!');
             }
         }
 
         // Update Step Numbers
         function updateStepNumbers() {
+            console.log('🔢 Updating step numbers');
             const steps = document.querySelectorAll('#stepsList .step-item');
             steps.forEach((step, index) => {
                 const numberDiv = step.querySelector('div');
                 numberDiv.textContent = index + 1;
             });
+            console.log('✅ Step numbers updated');
         }
     </script>
     <script src="../../assets/js/dropdown.js"></script>

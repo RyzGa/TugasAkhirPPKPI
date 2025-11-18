@@ -153,15 +153,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <script>
+        console.log('🔐 Login page loaded');
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('✅ Login page initialized');
+
+            // Log form submission
+            const loginForm = document.querySelector('form');
+            if (loginForm) {
+                loginForm.addEventListener('submit', function() {
+                    const email = document.getElementById('email')?.value;
+                    console.log('🔑 Attempting login for email:', email);
+                });
+            }
+        });
+
         function togglePassword() {
             const passwordInput = document.getElementById('password');
             const toggleIcon = document.getElementById('toggleIcon');
 
             if (passwordInput.type === 'password') {
+                console.log('👁️ Showing password');
                 passwordInput.type = 'text';
                 toggleIcon.classList.remove('fa-eye');
                 toggleIcon.classList.add('fa-eye-slash');
             } else {
+                console.log('🙈 Hiding password');
                 passwordInput.type = 'password';
                 toggleIcon.classList.remove('fa-eye-slash');
                 toggleIcon.classList.add('fa-eye');
@@ -171,5 +188,3 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </body>
 
 </html>
-
-

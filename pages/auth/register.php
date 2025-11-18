@@ -72,11 +72,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div style="max-width: 1200px; width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: center;">
             <!-- Left side - Branding -->
             <div style="display: flex; flex-direction: column; align-items: center;">
-                <a href="../../index.php" style="display: inline-flex; align-items: center; gap: 0.75rem; text-decoration: none; margin-bottom: 2rem;">
-                    <div style="background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%); padding: 1rem; border-radius: 1rem; box-shadow: var(--shadow-lg);">
-                        <i class="fas fa-hat-chef" style="font-size: 3rem; color: white;"></i>
-                    </div>
-                </a>
                 <h1 style="text-align: center; margin-bottom: 1rem;">Bergabung dengan Nusa Bites</h1>
                 <p style="text-align: center; color: var(--color-text-gray); font-size: 1.125rem;">
                     Buat akun dan mulai berbagi resep masakan favorit Anda
@@ -194,15 +189,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <script>
+        console.log('📝 Register page loaded');
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('✅ Register page initialized');
+
+            // Log form submission
+            const registerForm = document.querySelector('form');
+            if (registerForm) {
+                registerForm.addEventListener('submit', function() {
+                    const name = document.getElementById('name')?.value;
+                    const email = document.getElementById('email')?.value;
+                    console.log('📋 Attempting registration:', {
+                        name,
+                        email
+                    });
+                });
+            }
+
+            // Log password validation
+            const passwordInput = document.getElementById('password');
+            const confirmPasswordInput = document.getElementById('confirm_password');
+            if (passwordInput && confirmPasswordInput) {
+                confirmPasswordInput.addEventListener('input', function() {
+                    const match = passwordInput.value === this.value;
+                    console.log('🔒 Password match:', match ? '✅ Yes' : '❌ No');
+                });
+            }
+        });
+
         function togglePassword(inputId, iconId) {
             const passwordInput = document.getElementById(inputId);
             const toggleIcon = document.getElementById(iconId);
 
             if (passwordInput.type === 'password') {
+                console.log('👁️ Showing password for:', inputId);
                 passwordInput.type = 'text';
                 toggleIcon.classList.remove('fa-eye');
                 toggleIcon.classList.add('fa-eye-slash');
             } else {
+                console.log('🙈 Hiding password for:', inputId);
                 passwordInput.type = 'password';
                 toggleIcon.classList.remove('fa-eye-slash');
                 toggleIcon.classList.add('fa-eye');

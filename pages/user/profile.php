@@ -235,7 +235,17 @@ closeDBConnection($conn);
     </div>
 
     <script>
+        // Log page load
+        console.log('👤 Profile page loaded');
+        console.log('📊 User info:', {
+            name: '<?php echo addslashes($user['name']); ?>',
+            email: '<?php echo addslashes($user['email']); ?>',
+            myRecipesCount: <?php echo count($myRecipes); ?>,
+            likedRecipesCount: <?php echo count($likedRecipes); ?>
+        });
+
         function showTab(tabName) {
+            console.log('📑 Switching to tab:', tabName);
             // Hide all tabs
             document.querySelectorAll('.tab-content').forEach(content => {
                 content.style.display = 'none';
@@ -254,7 +264,21 @@ closeDBConnection($conn);
             const activeButton = document.getElementById('tab-' + tabName);
             activeButton.style.borderBottomColor = 'var(--color-primary)';
             activeButton.style.color = 'var(--color-primary)';
+            console.log('✅ Tab switched to:', tabName);
         }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('✅ Profile page initialized');
+
+            // Log recipe card clicks
+            const recipeCards = document.querySelectorAll('.recipe-card');
+            recipeCards.forEach((card, index) => {
+                card.addEventListener('click', function() {
+                    const title = this.querySelector('.recipe-card-title')?.textContent;
+                    console.log(`🍽️ Recipe clicked: "${title}"`);
+                });
+            });
+        });
     </script>
     <script src="../../assets/js/dropdown.js"></script>
     <?php include '../../includes/footer.php'; ?>

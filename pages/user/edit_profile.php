@@ -246,6 +246,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
 
+    <script>
+        console.log('✏️ Edit profile page loaded');
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('✅ Edit profile page initialized');
+
+            // Log form submission
+            const profileForm = document.querySelector('form');
+            if (profileForm) {
+                profileForm.addEventListener('submit', function() {
+                    console.log('💾 Saving profile changes');
+                    const formData = new FormData(this);
+                    console.log('📋 Updated profile data:', {
+                        name: formData.get('name'),
+                        email: formData.get('email'),
+                        hasNewAvatar: formData.get('avatar')?.name ? true : false,
+                        changePassword: formData.get('password') ? true : false
+                    });
+                });
+            }
+
+            // Log avatar selection
+            const avatarInput = document.querySelector('input[name="avatar"]');
+            if (avatarInput) {
+                avatarInput.addEventListener('change', function() {
+                    console.log('🖼️ Avatar image selected:', this.files[0]?.name, `(${(this.files[0]?.size / 1024).toFixed(2)} KB)`);
+                });
+            }
+        });
+    </script>
     <script src="../../assets/js/dropdown.js"></script>
     <?php include '../../includes/footer.php'; ?>
 </body>

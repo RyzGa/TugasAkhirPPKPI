@@ -402,8 +402,19 @@ closeDBConnection($conn);
     </div>
 
     <script>
+        // Log page load
+        console.log('📖 Recipe detail page loaded');
+        console.log('🍽️ Recipe ID:', <?php echo $recipeId; ?>);
+        console.log('📊 Recipe info:', {
+            title: '<?php echo addslashes($recipe['title']); ?>',
+            rating: <?php echo $actualRating; ?>,
+            reviewCount: <?php echo $actualReviewCount; ?>,
+            author: '<?php echo addslashes($recipe['author_name']); ?>'
+        });
+
         function updateStars(radio) {
             const value = parseInt(radio.value);
+            console.log('⭐ Rating star selected:', value);
             const stars = document.querySelectorAll('[data-star]');
             stars.forEach(star => {
                 const starValue = parseInt(star.getAttribute('data-star'));
@@ -417,13 +428,28 @@ closeDBConnection($conn);
 
         // Initialize stars
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('✅ Recipe detail page initialized');
             const checkedRadio = document.querySelector('input[name="rating"]:checked');
             if (checkedRadio) {
                 updateStars(checkedRadio);
             }
+
+            // Log review form submission
+            const reviewForm = document.querySelector('form[method="POST"]');
+            if (reviewForm) {
+                reviewForm.addEventListener('submit', function() {
+                    const rating = document.querySelector('input[name="rating"]:checked')?.value;
+                    const comment = document.querySelector('textarea[name="comment"]')?.value;
+                    console.log('📝 Submitting review:', {
+                        rating,
+                        commentLength: comment?.length
+                    });
+                });
+            }
         });
 
         function toggleLike(recipeId) {
+            console.log('❤️ Toggling like for recipe ID:', recipeId);
             fetch('api/toggle_like.php', {
                     method: 'POST',
                     headers: {
@@ -433,19 +459,29 @@ closeDBConnection($conn);
                         recipe_id: recipeId
                     })
                 })
-                .then(response => response.json())
+                .then(response => {
+                    console.log('📡 Received like toggle response');
+                    return response.json();
+                })
                 .then(data => {
+                    console.log('✅ Like toggle result:', data);
                     if (data.success) {
+                        console.log('🔄 Reloading page');
                         location.reload();
                     } else {
+                        console.error('❌ Like toggle failed:', data.message);
                         alert(data.message || 'Terjadi kesalahan');
                     }
                 });
         }
 
         function confirmDelete(recipeId) {
+            console.log('🗑️ Delete confirmation requested for recipe ID:', recipeId);
             if (confirm('Apakah Anda yakin ingin menghapus resep ini?')) {
+                console.log('✅ Delete confirmed, redirecting...');
                 window.location.href = '../../api/delete_recipe.php?id=' + recipeId;
+            } else {
+                console.log('❌ Delete cancelled');
             }
         }
     </script>
