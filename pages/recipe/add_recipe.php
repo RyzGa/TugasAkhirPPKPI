@@ -1,14 +1,19 @@
 <?php
+// Halaman Tambah Resep 
+// User dapat menambahkan resep baru dengan gambar, bahan, dan langkah-langkah 
+
 require_once '../../config/functions.php';
 require_once '../../config/database.php';
 
-requireLogin();
+requireLogin(); // Harus login untuk akses halaman ini
 
 $user = getCurrentUser();
 $error = '';
 $success = '';
 
+// Proses form tambah resep saat method POST 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Ambil dan sanitize input dari form
     $title = sanitizeInput($_POST['title']);
     $description = sanitizeInput($_POST['description']);
     $image = ''; // Default empty
@@ -16,17 +21,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $category = sanitizeInput($_POST['category']);
     $region = sanitizeInput($_POST['region']);
 
-    // Handle file upload
+    // Handle upload gambar resep 
     if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
         $allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
-        $maxSize = 5 * 1024 * 1024;
+        $maxSize = 5 * 1024 * 1024; // 5MB
 
+        // Validasi tipe dan ukuran file
         if (!in_array($_FILES['image']['type'], $allowedTypes)) {
             $error = 'Format file tidak didukung. Gunakan JPG, PNG, atau WEBP.';
         } elseif ($_FILES['image']['size'] > $maxSize) {
             $error = 'Ukuran file terlalu besar. Maksimal 5MB.';
         } else {
-            // Upload to Cloudinary
+            // Upload ke Cloudinary cloud storage
             $cloudinaryResult = uploadToCloudinary($_FILES['image']['tmp_name'], 'nusabites/recipes');
 
             if ($cloudinaryResult) {
@@ -37,18 +43,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // Parse ingredients and steps from array
+    // Parse ingredients dan steps dari array input 
     $ingredients = isset($_POST['ingredients']) ? array_filter(array_map('trim', $_POST['ingredients'])) : [];
     $steps = isset($_POST['steps']) ? array_filter(array_map('trim', $_POST['steps'])) : [];
 
+    // Validasi semua field required
     if (empty($error) && (empty($title) || empty($description) || count($ingredients) === 0 || count($steps) === 0)) {
         $error = 'Mohon lengkapi semua field yang diperlukan!';
     } elseif (empty($error)) {
         $conn = getDBConnection();
 
+        // Convert array ke JSON untuk disimpan di database
         $ingredientsJson = json_encode($ingredients);
         $stepsJson = json_encode($steps);
 
+        // Query: INSERT resep baru ke database
         $stmt = $conn->prepare("INSERT INTO recipes (title, description, image, author_id, author_name, author_avatar, cooking_time, category, region, ingredients, steps) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
         if (!$stmt) {
@@ -59,6 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($stmt->execute()) {
                 $success = 'Resep berhasil ditambahkan!';
                 $newRecipeId = $stmt->insert_id;
+                // Redirect ke halaman detail resep yang baru dibuat
                 header("Location: recipe_detail.php?id=$newRecipeId");
                 exit;
             } else {

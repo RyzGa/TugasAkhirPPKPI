@@ -1,14 +1,18 @@
 <?php
+// Halaman Admin Dashboard
+// Hanya admin yang dapat mengakses halaman ini untuk kelola resep dan lihat statistik
+
 require_once '../../config/functions.php';
 require_once '../../config/database.php';
 
-requireLogin();
-requireAdmin();
+requireLogin(); // Harus login
+requireAdmin(); // Harus role admin
 
 $user = getCurrentUser();
 $conn = getDBConnection();
 
-// Get all recipes with actual review counts and ratings
+// Query: SELECT semua resep dengan actual review counts dan ratings
+// Subquery untuk menghitung review_count dan rating dari tabel reviews
 $stmt = $conn->prepare("SELECT r.*, 
                         (SELECT COUNT(*) FROM reviews WHERE recipe_id = r.id) as actual_review_count,
                         (SELECT AVG(rating) FROM reviews WHERE recipe_id = r.id) as actual_rating
@@ -16,7 +20,8 @@ $stmt = $conn->prepare("SELECT r.*,
 $stmt->execute();
 $recipes = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
-// Get statistics with actual data
+// Query: SELECT statistik website (total resep, user, review, rata-rata rating)
+// Menggunakan multiple subqueries untuk hitung masing-masing statistik
 $statsQuery = "SELECT 
                 (SELECT COUNT(*) FROM recipes) as total_recipes,
                 (SELECT COUNT(*) FROM users WHERE role = 'user') as total_users,

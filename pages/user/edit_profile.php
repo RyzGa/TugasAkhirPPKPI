@@ -1,20 +1,26 @@
 <?php
+// Halaman Edit Profil User
+// User dapat mengubah nama, email, avatar, dan password
+
 require_once '../../config/functions.php';
 require_once '../../config/database.php';
 
-requireLogin();
+requireLogin(); // Harus login untuk akses halaman ini
 
 $user = getCurrentUser();
 $error = '';
 $success = '';
 
+// Proses form edit profil saat method POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Ambil dan sanitize input dari form
     $name = sanitizeInput($_POST['name']);
     $email = sanitizeInput($_POST['email']);
     $avatar = $user['avatar']; // Keep existing avatar by default
     $password = isset($_POST['password']) ? $_POST['password'] : '';
     $confirm = isset($_POST['confirm_password']) ? $_POST['confirm_password'] : '';
 
+    // Validasi input
     if (empty($name) || empty($email)) {
         $error = 'Nama dan email harus diisi.';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -24,18 +30,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (!empty($password) && strlen($password) < 6) {
         $error = 'Password minimal 6 karakter.';
     } else {
-        // Handle file upload if provided
+        // Handle upload avatar baru (opsional)
         if (isset($_FILES['avatar_file']) && $_FILES['avatar_file']['error'] !== UPLOAD_ERR_NO_FILE) {
             $file = $_FILES['avatar_file'];
             if ($file['error'] !== UPLOAD_ERR_OK) {
                 $error = 'Terjadi kesalahan saat mengunggah file.';
             } else {
                 $maxSize = 2 * 1024 * 1024; // 2MB
+                // Validasi ukuran file
                 if ($file['size'] > $maxSize) {
                     $error = 'Ukuran file terlalu besar (maks 2MB).';
                 } else {
                     $tmp = $file['tmp_name'];
                     $imgInfo = @getimagesize($tmp);
+                    // Validasi apakah file adalah gambar
                     if ($imgInfo === false) {
                         $error = 'File bukan gambar yang valid.';
                     } else {
@@ -45,14 +53,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             'image/png' => 'png',
                             'image/webp' => 'webp'
                         ];
+                        // Validasi tipe gambar
                         if (!isset($allowed[$mime])) {
                             $error = 'Tipe gambar tidak didukung. Gunakan JPG, PNG, atau WEBP.';
                         } else {
-                            // Upload to Cloudinary
+                            // Upload avatar baru ke Cloudinary
                             $cloudinaryResult = uploadToCloudinary($tmp, 'nusabites/avatars');
 
                             if ($cloudinaryResult) {
-                                // Delete old avatar from Cloudinary if exists
+                                // Hapus avatar lama dari Cloudinary jika ada
                                 if (!empty($user['avatar']) && strpos($user['avatar'], 'cloudinary.com') !== false) {
                                     // Extract public_id from URL
                                     preg_match('/\/([^\/]+)\.(jpg|png|webp)$/', $user['avatar'], $matches);
@@ -78,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Keep avatar empty if no upload and no existing avatar
             // No automatic avatar generation
 
-            // Check email uniqueness (exclude current user)
+            // Query: Cek apakah email sudah digunakan user lain
             $checkStmt = $conn->prepare("SELECT id FROM users WHERE email = ? AND id != ?");
             $checkStmt->bind_param("si", $email, $user['id']);
             $checkStmt->execute();
@@ -87,12 +96,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($checkRes->num_rows > 0) {
                 $error = 'Email sudah digunakan oleh akun lain.';
             } else {
-                // Build update query
+                // Query: UPDATE data user di database
+                // Jika password diisi, update juga password (di-hash)
                 if (!empty($password)) {
                     $hashed = password_hash($password, PASSWORD_DEFAULT);
                     $stmt = $conn->prepare("UPDATE users SET name = ?, email = ?, avatar = ?, password = ? WHERE id = ?");
                     $stmt->bind_param("ssssi", $name, $email, $avatar, $hashed, $user['id']);
                 } else {
+                    // Jika password kosong, update tanpa password
                     $stmt = $conn->prepare("UPDATE users SET name = ?, email = ?, avatar = ? WHERE id = ?");
                     $stmt->bind_param("sssi", $name, $email, $avatar, $user['id']);
                 }

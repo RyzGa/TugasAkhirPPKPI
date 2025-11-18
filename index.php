@@ -1,11 +1,14 @@
 <?php
+// Halaman Dashboard Utama
+// Menampilkan daftar resep dengan filter, search, dan pagination
+
 require_once 'config/functions.php';
 require_once 'config/database.php';
 
 $conn = getDBConnection();
 $user = getCurrentUser();
 
-// Get filter parameters
+// Ambil parameter filter dari URL
 $search = isset($_GET['search']) ? sanitizeInput($_GET['search']) : '';
 $categories = isset($_GET['categories']) ? $_GET['categories'] : [];
 $regions = isset($_GET['regions']) ? $_GET['regions'] : [];
@@ -13,7 +16,7 @@ $cookingTime = isset($_GET['cooking_time']) ? sanitizeInput($_GET['cooking_time'
 $sortRating = isset($_GET['sort_rating']) ? sanitizeInput($_GET['sort_rating']) : 'newest';
 $showAll = isset($_GET['show_all']) ? true : false;
 
-// Build query
+// Query: SELECT resep dengan subquery untuk like dan review count
 $query = "SELECT r.*, 
           (SELECT COUNT(*) FROM liked_recipes WHERE recipe_id = r.id AND user_id = ?) as is_liked,
           (SELECT COUNT(*) FROM reviews WHERE recipe_id = r.id) as actual_review_count,
@@ -22,6 +25,7 @@ $query = "SELECT r.*,
 $params = [$user ? $user['id'] : 0];
 $types = "i";
 
+// Filter: Search berdasarkan title atau description
 if ($search) {
     $query .= " AND (r.title LIKE ? OR r.description LIKE ?)";
     $params[] = "%$search%";
@@ -29,6 +33,7 @@ if ($search) {
     $types .= "ss";
 }
 
+// Filter: Kategori (Makanan Utama, Camilan, Minuman)
 if (!empty($categories)) {
     $placeholders = implode(',', array_fill(0, count($categories), '?'));
     $query .= " AND r.category IN ($placeholders)";
@@ -38,6 +43,7 @@ if (!empty($categories)) {
     }
 }
 
+// Filter: Region (Jawa, Sumatera, dll)
 if (!empty($regions)) {
     $placeholders = implode(',', array_fill(0, count($regions), '?'));
     $query .= " AND r.region IN ($placeholders)";
@@ -47,7 +53,7 @@ if (!empty($regions)) {
     }
 }
 
-// Sorting
+// Sorting: Terbaru, Rating Tertinggi, atau Terpopuler
 switch ($sortRating) {
     case 'highest':
         $query .= " ORDER BY actual_rating DESC, r.created_at DESC";
@@ -60,6 +66,7 @@ switch ($sortRating) {
         break;
 }
 
+// Eksekusi query
 $stmt = $conn->prepare($query);
 if (count($params) > 1) {
     $stmt->bind_param($types, ...$params);
@@ -70,12 +77,12 @@ $stmt->execute();
 $result = $stmt->get_result();
 $allRecipes = $result->fetch_all(MYSQLI_ASSOC);
 
-// Pagination - tampilkan 8 resep saja jika tidak show_all
+// Pagination: Tampilkan 8 resep per halaman
 $totalRecipes = count($allRecipes);
 $recipes = $showAll ? $allRecipes : array_slice($allRecipes, 0, 8);
 $hasMore = $totalRecipes > 8 && !$showAll;
 
-// Get liked recipes for current user
+// Query: Ambil daftar resep yang disukai user (untuk tampilkan icon love)
 $likedRecipes = [];
 if ($user) {
     $likedQuery = "SELECT recipe_id FROM liked_recipes WHERE user_id = ?";

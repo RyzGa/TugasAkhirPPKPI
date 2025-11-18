@@ -1,14 +1,18 @@
 <?php
+// Halaman Edit Resep 
+// User dapat mengedit resep miliknya, atau admin dapat edit semua resep 
+
 require_once '../../config/functions.php';
 require_once '../../config/database.php';
 
-requireLogin();
+requireLogin(); // Harus login untuk akses halaman ini
 
 $user = getCurrentUser();
 $recipeId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 $error = '';
 $success = '';
 
+// Validasi recipe ID
 if ($recipeId === 0) {
     header('Location: ../../index.php');
     exit;
@@ -16,29 +20,32 @@ if ($recipeId === 0) {
 
 $conn = getDBConnection();
 
-// Get recipe
+// Query: SELECT data resep yang akan diedit 
 $stmt = $conn->prepare("SELECT * FROM recipes WHERE id = ?");
 $stmt->bind_param("i", $recipeId);
 $stmt->execute();
 $result = $stmt->get_result();
 $recipe = $result->fetch_assoc();
 
+// Cek apakah resep ditemukan
 if (!$recipe) {
     header('Location: ../../index.php');
     exit;
 }
 
-// Check permission
+// Check permission: hanya author atau admin yang bisa edit 
 if ($user['role'] !== 'admin' && $user['id'] != $recipe['author_id']) {
     header('Location: ../../index.php');
     exit;
 }
 
-// Parse ingredients and steps
+// Parse ingredients dan steps dari JSON ke array untuk form
 $ingredients = json_decode($recipe['ingredients'], true);
 $steps = json_decode($recipe['steps'], true);
 
+// Proses form edit resep saat method POST 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Ambil dan sanitize input dari form
     $title = sanitizeInput($_POST['title']);
     $description = sanitizeInput($_POST['description']);
     $image = $recipe['image']; // Keep existing image by default
@@ -46,21 +53,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $category = sanitizeInput($_POST['category']);
     $region = sanitizeInput($_POST['region']);
 
-    // Handle file upload
+    // Handle upload gambar baru (opsional) 
     if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
         $allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
         $maxSize = 5 * 1024 * 1024; // 5MB
 
+        // Validasi tipe dan ukuran file
         if (!in_array($_FILES['image']['type'], $allowedTypes)) {
             $error = 'Format file tidak didukung. Gunakan JPG, PNG, atau WEBP.';
         } elseif ($_FILES['image']['size'] > $maxSize) {
             $error = 'Ukuran file terlalu besar. Maksimal 5MB.';
         } else {
-            // Upload to Cloudinary
+            // Upload gambar baru ke Cloudinary
             $cloudinaryResult = uploadToCloudinary($_FILES['image']['tmp_name'], 'nusabites/recipes');
 
             if ($cloudinaryResult) {
-                // Delete old image from Cloudinary if exists
+                // Hapus gambar lama dari Cloudinary jika ada
                 if (!empty($recipe['image']) && strpos($recipe['image'], 'cloudinary.com') !== false) {
                     preg_match('/\/([^\/]+)\.(jpg|png|webp)$/', $recipe['image'], $matches);
                     if (isset($matches[1])) {
@@ -75,21 +83,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // Proses ingredients dan steps sebagai array
+    // Proses ingredients dan steps dari array input
     $newIngredients = isset($_POST['ingredients']) ? array_filter(array_map('trim', $_POST['ingredients'])) : [];
     $newSteps = isset($_POST['steps']) ? array_filter(array_map('trim', $_POST['steps'])) : [];
 
+    // Validasi semua field required
     if (empty($error) && (empty($title) || empty($description) || count($newIngredients) === 0 || count($newSteps) === 0)) {
         $error = 'Mohon lengkapi semua field yang diperlukan!';
     } elseif (empty($error)) {
+        // Convert array ke JSON untuk disimpan
         $ingredientsJson = json_encode(array_values($newIngredients));
         $stepsJson = json_encode(array_values($newSteps));
 
+        // Query: UPDATE data resep di database 
         $updateStmt = $conn->prepare("UPDATE recipes SET title = ?, description = ?, image = ?, cooking_time = ?, category = ?, region = ?, ingredients = ?, steps = ? WHERE id = ?");
         $updateStmt->bind_param("ssssssssi", $title, $description, $image, $cookingTime, $category, $region, $ingredientsJson, $stepsJson, $recipeId);
 
         if ($updateStmt->execute()) {
             $success = 'Resep berhasil diupdate!';
+            // Redirect ke halaman detail resep
             header("Location: recipe_detail.php?id=$recipeId");
             exit;
         } else {

@@ -1,10 +1,14 @@
 <?php
+// Halaman Detail Resep
+// Menampilkan informasi lengkap resep, review, dan fitur like
+
 require_once '../../config/functions.php';
 require_once '../../config/database.php';
 
 $user = getCurrentUser();
 $recipeId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
+// Validasi recipe ID
 if ($recipeId === 0) {
     header('Location: ../../index.php');
     exit;
@@ -12,7 +16,7 @@ if ($recipeId === 0) {
 
 $conn = getDBConnection();
 
-// Get recipe detail
+// Query: SELECT detail resep dengan status like user
 $stmt = $conn->prepare("SELECT r.*, 
                         (SELECT COUNT(*) FROM liked_recipes WHERE recipe_id = r.id AND user_id = ?) as is_liked
                         FROM recipes r WHERE r.id = ?");
@@ -22,22 +26,23 @@ $stmt->execute();
 $result = $stmt->get_result();
 $recipe = $result->fetch_assoc();
 
+// Cek apakah resep ditemukan
 if (!$recipe) {
     header('Location: ../../index.php');
     exit;
 }
 
-// Parse ingredients and steps from JSON
+// Parse ingredients dan steps dari JSON ke array
 $ingredients = json_decode($recipe['ingredients'], true);
 $steps = json_decode($recipe['steps'], true);
 
-// Get reviews
+// Query: SELECT semua review untuk resep ini
 $reviewStmt = $conn->prepare("SELECT * FROM reviews WHERE recipe_id = ? ORDER BY created_at DESC");
 $reviewStmt->bind_param("i", $recipeId);
 $reviewStmt->execute();
 $reviews = $reviewStmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
-// Hitung jumlah review yang sebenarnya
+// Hitung rating dan jumlah review yang sebenarnya
 $actualReviewCount = count($reviews);
 $actualRating = 0;
 if ($actualReviewCount > 0) {
@@ -48,16 +53,18 @@ if ($actualReviewCount > 0) {
     $actualRating = $totalRating / $actualReviewCount;
 }
 
-// Handle review submission
+// Handle review submission: user mengirim rating dan komentar
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_review']) && $user) {
     $rating = (int)$_POST['rating'];
     $comment = sanitizeInput($_POST['comment']);
 
+    // Query: INSERT review baru ke database
     $insertReview = $conn->prepare("INSERT INTO reviews (recipe_id, user_id, author_name, author_avatar, rating, comment) VALUES (?, ?, ?, ?, ?, ?)");
     $insertReview->bind_param("iissis", $recipeId, $user['id'], $user['name'], $user['avatar'], $rating, $comment);
 
     if ($insertReview->execute()) {
-        // Update recipe rating
+        // Query: UPDATE rating dan review count di tabel recipes
+        // Menghitung ulang AVG rating dan COUNT review dari tabel reviews
         $updateRating = $conn->prepare("UPDATE recipes SET 
                                         rating = (SELECT AVG(rating) FROM reviews WHERE recipe_id = ?),
                                         review_count = (SELECT COUNT(*) FROM reviews WHERE recipe_id = ?)
@@ -65,6 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_review']) && $
         $updateRating->bind_param("iii", $recipeId, $recipeId, $recipeId);
         $updateRating->execute();
 
+        // Refresh halaman untuk menampilkan review baru
         header("Location: recipe_detail.php?id=$recipeId");
         exit;
     }

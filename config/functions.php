@@ -3,19 +3,22 @@ session_start();
 require_once 'database.php';
 require_once 'cloudinary.php';
 
-// Check if user is logged in
+// Fungsi untuk mengecek apakah user sudah login -->
+// Mengembalikan true jika session user_id ada -->
 function isLoggedIn()
 {
     return isset($_SESSION['user_id']);
 }
 
-// Check if user is admin
+// Fungsi untuk mengecek apakah user adalah admin -->
+// Mengembalikan true jika role user adalah 'admin' -->
 function isAdmin()
 {
     return isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin';
 }
 
-// Get current user data
+// Fungsi untuk mendapatkan data user yang sedang login -->
+// Mengembalikan array berisi id, name, email, role, avatar atau null jika belum login -->
 function getCurrentUser()
 {
     if (!isLoggedIn()) {
@@ -31,7 +34,8 @@ function getCurrentUser()
     ];
 }
 
-// Require login
+// Fungsi untuk memastikan user sudah login -->
+// Redirect ke login.php jika belum login -->
 function requireLogin()
 {
     if (!isLoggedIn()) {
@@ -40,7 +44,8 @@ function requireLogin()
     }
 }
 
-// Require admin
+// Fungsi untuk memastikan user adalah admin -->
+// Redirect ke index.php jika bukan admin -->
 function requireAdmin()
 {
     if (!isAdmin()) {
@@ -49,7 +54,8 @@ function requireAdmin()
     }
 }
 
-// Sanitize input
+// Fungsi untuk membersihkan input dari user -->
+// Menghapus spasi, backslash, dan mengkonversi karakter khusus ke HTML entities -->
 function sanitizeInput($data)
 {
     $data = trim($data);
@@ -58,19 +64,24 @@ function sanitizeInput($data)
     return $data;
 }
 
-// Generate avatar URL - returns empty string (no longer using generated avatars)
+// Fungsi untuk generate URL avatar - deprecated -->
+// Return string kosong, icon default akan ditampilkan -->
 function generateAvatarUrl($seed)
 {
     return ""; // Return empty string, icon will be shown instead
 }
 
-// Resize image to fit within max width/height while preserving aspect ratio.
+// Fungsi untuk resize gambar -->
+// Mengubah ukuran gambar sesuai max width/height dengan menjaga aspect ratio -->
+// Parameter: path sumber, path tujuan, max width (default 400px), max height (default 400px) -->
 function resizeImage($sourcePath, $destPath, $maxWidth = 400, $maxHeight = 400)
 {
+    // Cek apakah file sumber ada
     if (!file_exists($sourcePath)) {
         return false;
     }
 
+    // Ambil informasi gambar (width, height, mime type)
     $info = @getimagesize($sourcePath);
     if ($info === false) {
         return false;
@@ -79,25 +90,26 @@ function resizeImage($sourcePath, $destPath, $maxWidth = 400, $maxHeight = 400)
     list($width, $height) = $info;
     $mime = $info['mime'];
 
-    // Calculate new size
+    // Hitung ukuran baru dengan menjaga aspect ratio
     $ratio = min($maxWidth / $width, $maxHeight / $height, 1);
     $newWidth = (int)($width * $ratio);
     $newHeight = (int)($height * $ratio);
 
+    // Jika ukuran sudah sesuai, tidak perlu resize
     if ($newWidth === $width && $newHeight === $height) {
-        // No resize needed, but ensure we can still copy if dest differs
         if ($sourcePath !== $destPath) {
             return copy($sourcePath, $destPath);
         }
         return true;
     }
 
+    // Buat image resource berdasarkan tipe file
     switch ($mime) {
         case 'image/jpeg':
             if (function_exists('imagecreatefromjpeg')) {
                 $srcImg = imagecreatefromjpeg($sourcePath);
             } else {
-                // GD not available; fallback to copying file (no resize)
+                // GD library tidak tersedia, copy tanpa resize
                 return copy($sourcePath, $destPath);
             }
             break;
@@ -105,7 +117,7 @@ function resizeImage($sourcePath, $destPath, $maxWidth = 400, $maxHeight = 400)
             if (function_exists('imagecreatefrompng')) {
                 $srcImg = imagecreatefrompng($sourcePath);
             } else {
-                // GD not available; fallback to copying file (no resize)
+                // GD library tidak tersedia, copy tanpa resize
                 return copy($sourcePath, $destPath);
             }
             break;
@@ -113,7 +125,7 @@ function resizeImage($sourcePath, $destPath, $maxWidth = 400, $maxHeight = 400)
             if (function_exists('imagecreatefromwebp')) {
                 $srcImg = imagecreatefromwebp($sourcePath);
             } else {
-                // GD/webp support not available; fallback to copying
+                // WebP tidak didukung, copy tanpa resize
                 return copy($sourcePath, $destPath);
             }
             break;
@@ -125,9 +137,10 @@ function resizeImage($sourcePath, $destPath, $maxWidth = 400, $maxHeight = 400)
         return false;
     }
 
+    // Buat canvas baru dengan ukuran yang telah dihitung
     $dstImg = imagecreatetruecolor($newWidth, $newHeight);
 
-    // Preserve transparency for PNG and WEBP
+    // Pertahankan transparansi untuk PNG dan WEBP
     if (in_array($mime, ['image/png', 'image/webp'])) {
         imagealphablending($dstImg, false);
         imagesavealpha($dstImg, true);
@@ -135,31 +148,34 @@ function resizeImage($sourcePath, $destPath, $maxWidth = 400, $maxHeight = 400)
         imagefilledrectangle($dstImg, 0, 0, $newWidth, $newHeight, $transparent);
     }
 
+    // Salin dan resize gambar ke canvas baru
     imagecopyresampled($dstImg, $srcImg, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
 
+    // Simpan gambar hasil resize sesuai format
     $saved = false;
     switch ($mime) {
         case 'image/jpeg':
-            $saved = imagejpeg($dstImg, $destPath, 85);
+            $saved = imagejpeg($dstImg, $destPath, 85); // Quality 85%
             break;
         case 'image/png':
-            // quality: 0 (no compression) - 9
-            $saved = imagepng($dstImg, $destPath, 6);
+            $saved = imagepng($dstImg, $destPath, 6); // Compression level 6
             break;
         case 'image/webp':
             if (function_exists('imagewebp')) {
-                $saved = imagewebp($dstImg, $destPath, 85);
+                $saved = imagewebp($dstImg, $destPath, 85); // Quality 85%
             }
             break;
     }
 
+    // Hapus resource dari memory
     imagedestroy($srcImg);
     imagedestroy($dstImg);
 
     return $saved;
 }
 
-// Check if current page is active
+// Fungsi untuk mengecek apakah halaman saat ini aktif -->
+// Return 'active' jika nama halaman sesuai, untuk styling navbar -->
 function isActivePage($pageName)
 {
     $currentPage = basename($_SERVER['PHP_SELF']);

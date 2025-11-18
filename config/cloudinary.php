@@ -1,33 +1,26 @@
 <?php
 
-/**
- * Cloudinary Configuration
- * 
- * Credentials dari Cloudinary Dashboard
- */
+// Konfigurasi Cloudinary untuk cloud storage gambar -->
+// Credentials didapat dari Cloudinary Dashboard -->
 
-define('CLOUDINARY_CLOUD_NAME', 'di9ocdzxe');
-define('CLOUDINARY_API_KEY', '448475687916756');
-define('CLOUDINARY_API_SECRET', 'Lw9pKXtXc83IW0mkSH1YlrOhNt4');
-define('CLOUDINARY_UPLOAD_PRESET', 'nusabites');     // Optional: buat upload preset di Cloudinary
+define('CLOUDINARY_CLOUD_NAME', 'di9ocdzxe');           // Nama cloud Cloudinary
+define('CLOUDINARY_API_KEY', '448475687916756');        // API Key untuk autentikasi
+define('CLOUDINARY_API_SECRET', 'Lw9pKXtXc83IW0mkSH1YlrOhNt4');  // API Secret
+define('CLOUDINARY_UPLOAD_PRESET', 'nusabites');        // Upload preset (optional)
 
-/**
- * Upload file to Cloudinary
- * 
- * @param string $filePath Path to the local file
- * @param string $folder Folder in Cloudinary (e.g., 'avatars', 'recipes')
- * @return array|false Returns array with 'secure_url' and 'public_id' on success, false on failure
- */
+// Fungsi untuk upload file ke Cloudinary -->
+// Parameter: path file lokal, nama folder di Cloudinary -->
+// Return: array dengan 'secure_url' dan 'public_id' jika sukses, false jika gagal -->
 function uploadToCloudinary($filePath, $folder = 'nusabites')
 {
     $cloudName = CLOUDINARY_CLOUD_NAME;
     $apiKey = CLOUDINARY_API_KEY;
     $apiSecret = CLOUDINARY_API_SECRET;
 
-    // Generate timestamp
+    // Generate timestamp untuk signature
     $timestamp = time();
 
-    // Prepare upload parameters
+    // Siapkan parameter upload
     $params = [
         'file' => new CURLFile($filePath),
         'timestamp' => $timestamp,
@@ -35,14 +28,15 @@ function uploadToCloudinary($filePath, $folder = 'nusabites')
         'api_key' => $apiKey
     ];
 
-    // Generate signature
+    // Generate signature untuk keamanan API
     $signatureString = "folder={$folder}&timestamp={$timestamp}{$apiSecret}";
     $signature = hash('sha256', $signatureString);
     $params['signature'] = $signature;
 
-    // Upload to Cloudinary
+    // URL endpoint Cloudinary API
     $url = "https://api.cloudinary.com/v1_1/{$cloudName}/image/upload";
 
+    // Kirim request menggunakan cURL
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url);
     curl_setopt($ch, CURLOPT_POST, true);
@@ -53,23 +47,21 @@ function uploadToCloudinary($filePath, $folder = 'nusabites')
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
 
+    // Parse response jika sukses
     if ($httpCode === 200) {
         $result = json_decode($response, true);
         return [
-            'secure_url' => $result['secure_url'],
-            'public_id' => $result['public_id']
+            'secure_url' => $result['secure_url'],   // URL HTTPS gambar
+            'public_id' => $result['public_id']      // ID untuk delete/transform
         ];
     }
 
     return false;
 }
 
-/**
- * Delete file from Cloudinary
- * 
- * @param string $publicId Public ID of the file to delete
- * @return bool
- */
+// Fungsi untuk menghapus file dari Cloudinary -->
+// Parameter: public_id dari file yang akan dihapus -->
+// Return: true jika sukses, false jika gagal -->
 function deleteFromCloudinary($publicId)
 {
     $cloudName = CLOUDINARY_CLOUD_NAME;
@@ -78,12 +70,14 @@ function deleteFromCloudinary($publicId)
 
     $timestamp = time();
 
-    // Generate signature
+    // Generate signature untuk autentikasi
     $signatureString = "public_id={$publicId}&timestamp={$timestamp}{$apiSecret}";
     $signature = hash('sha256', $signatureString);
 
+    // URL endpoint untuk delete
     $url = "https://api.cloudinary.com/v1_1/{$cloudName}/image/destroy";
 
+    // Kirim request delete menggunakan cURL
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url);
     curl_setopt($ch, CURLOPT_POST, true);
@@ -102,29 +96,27 @@ function deleteFromCloudinary($publicId)
     return $httpCode === 200;
 }
 
-/**
- * Transform Cloudinary URL with width/height
- * 
- * @param string $url Cloudinary URL
- * @param int $width Width in pixels
- * @param int $height Height in pixels
- * @return string Transformed URL
- */
+// Fungsi untuk transform URL Cloudinary (resize, crop, dll) -->
+// Parameter: URL Cloudinary, width, height, crop mode -->
+// Return: URL yang sudah ditransform -->
 function transformCloudinaryUrl($url, $width = null, $height = null, $crop = 'fill')
 {
+    // Cek apakah URL dari Cloudinary
     if (strpos($url, 'cloudinary.com') === false) {
         return $url;
     }
 
+    // Build transformation parameters
     $transformations = [];
-    if ($width) $transformations[] = "w_{$width}";
-    if ($height) $transformations[] = "h_{$height}";
-    if ($width || $height) $transformations[] = "c_{$crop}";
+    if ($width) $transformations[] = "w_{$width}";      // Width
+    if ($height) $transformations[] = "h_{$height}";    // Height
+    if ($width || $height) $transformations[] = "c_{$crop}";  // Crop mode
 
     if (empty($transformations)) {
         return $url;
     }
 
+    // Inject transformations ke URL
     $transform = implode(',', $transformations);
     return str_replace('/upload/', "/upload/{$transform}/", $url);
 }

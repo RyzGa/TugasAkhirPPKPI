@@ -1,13 +1,17 @@
 <?php
+// Halaman Profil User
+// Menampilkan resep yang dibuat user dan resep yang di-like
+
 require_once '../../config/functions.php';
 require_once '../../config/database.php';
 
-requireLogin();
+requireLogin(); // Harus login untuk akses halaman ini
 
 $user = getCurrentUser();
 $conn = getDBConnection();
 
-// Get user's recipes with actual review counts and ratings
+// Query: SELECT resep-resep yang dibuat oleh user ini
+// Dengan subquery untuk menghitung actual_review_count dan actual_rating
 $myRecipesStmt = $conn->prepare("SELECT r.*, 
                                   (SELECT COUNT(*) FROM reviews WHERE recipe_id = r.id) as actual_review_count,
                                   (SELECT AVG(rating) FROM reviews WHERE recipe_id = r.id) as actual_rating
@@ -16,7 +20,8 @@ $myRecipesStmt->bind_param("i", $user['id']);
 $myRecipesStmt->execute();
 $myRecipes = $myRecipesStmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
-// Get liked recipes with actual review counts and ratings
+// Query: SELECT resep-resep yang di-like oleh user ini
+// JOIN dengan liked_recipes untuk ambil resep favorit
 $likedStmt = $conn->prepare("SELECT r.*, 
                              (SELECT COUNT(*) FROM reviews WHERE recipe_id = r.id) as actual_review_count,
                              (SELECT AVG(rating) FROM reviews WHERE recipe_id = r.id) as actual_rating

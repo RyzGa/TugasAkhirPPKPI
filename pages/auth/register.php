@@ -1,16 +1,22 @@
 <?php
+// Halaman Register
+// Memproses pendaftaran user baru ke database
+
 require_once '../../config/functions.php';
 require_once '../../config/database.php';
 
 $error = '';
 $success = '';
 
+// Proses form register saat method POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Ambil dan sanitize input dari form
     $name = sanitizeInput($_POST['name']);
     $email = sanitizeInput($_POST['email']);
     $password = $_POST['password'];
     $confirmPassword = $_POST['confirm_password'];
 
+    // Validasi input
     if (empty($name) || empty($email) || empty($password) || empty($confirmPassword)) {
         $error = 'Semua field harus diisi!';
     } elseif ($password !== $confirmPassword) {
@@ -20,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $conn = getDBConnection();
 
-        // Check if email already exists
+        //Query: Cek apakah email sudah terdaftar
         $checkStmt = $conn->prepare("SELECT id FROM users WHERE email = ?");
         $checkStmt->bind_param("s", $email);
         $checkStmt->execute();
@@ -29,22 +35,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($checkResult->num_rows > 0) {
             $error = 'Email sudah terdaftar!';
         } else {
+            // Hash password untuk keamanan
             $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-            $avatar = ""; // No default avatar, user will see icon until they upload
+            $avatar = ""; // Avatar kosong, akan tampil icon default
 
+            // Query: INSERT user baru ke database
             $stmt = $conn->prepare("INSERT INTO users (name, email, password, avatar) VALUES (?, ?, ?, ?)");
             $stmt->bind_param("ssss", $name, $email, $hashedPassword, $avatar);
 
             if ($stmt->execute()) {
                 $success = 'Registrasi berhasil! Silakan login.';
 
-                // Auto login
+                // Auto login setelah register
                 $_SESSION['user_id'] = $stmt->insert_id;
                 $_SESSION['user_name'] = $name;
                 $_SESSION['user_email'] = $email;
                 $_SESSION['user_role'] = 'user';
                 $_SESSION['user_avatar'] = $avatar;
 
+                // Redirect ke halaman login
                 header('Location: login.php');
                 exit;
             } else {
@@ -78,10 +87,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </p>
 
                 <div style="margin-top: 2rem; width: 100%; max-width: 500px; height: 350px; border-radius: 1rem; overflow: hidden; box-shadow: var(--shadow-xl);">
-                    <img src="https://images.unsplash.com/photo-1556910103-1c02745aae4d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxpbmRvbmVzaWFuJTIwY29va2luZ3xlbnwxfHx8fDE3NjI0ODI5MDh8MA&ixlib=rb-4.1.0&q=80&w=1080"
-                        alt="Cooking Together"
-                        style="width: 100%; height: 100%; object-fit: cover;"
-                        onerror="this.style.display='none'">
+                    <img src="../../assets/images/baner_register.jpg"
+                        alt="Bergabung dengan Nusa Bites"
+                        style="width: 100%; height: 100%; object-fit: cover;">
                 </div>
             </div>
 
