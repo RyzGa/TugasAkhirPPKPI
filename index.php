@@ -11,6 +11,7 @@ $categories = isset($_GET['categories']) ? $_GET['categories'] : [];
 $regions = isset($_GET['regions']) ? $_GET['regions'] : [];
 $cookingTime = isset($_GET['cooking_time']) ? sanitizeInput($_GET['cooking_time']) : 'all';
 $sortRating = isset($_GET['sort_rating']) ? sanitizeInput($_GET['sort_rating']) : 'newest';
+$showAll = isset($_GET['show_all']) ? true : false;
 
 // Build query
 $query = "SELECT r.*, 
@@ -51,8 +52,8 @@ switch ($sortRating) {
     case 'highest':
         $query .= " ORDER BY actual_rating DESC, r.created_at DESC";
         break;
-    case 'lowest':
-        $query .= " ORDER BY actual_rating ASC, r.created_at DESC";
+    case 'popular':
+        $query .= " ORDER BY actual_review_count DESC, r.created_at DESC";
         break;
     default: // newest
         $query .= " ORDER BY r.created_at DESC";
@@ -67,7 +68,12 @@ if (count($params) > 1) {
 }
 $stmt->execute();
 $result = $stmt->get_result();
-$recipes = $result->fetch_all(MYSQLI_ASSOC);
+$allRecipes = $result->fetch_all(MYSQLI_ASSOC);
+
+// Pagination - tampilkan 8 resep saja jika tidak show_all
+$totalRecipes = count($allRecipes);
+$recipes = $showAll ? $allRecipes : array_slice($allRecipes, 0, 8);
+$hasMore = $totalRecipes > 8 && !$showAll;
 
 // Get liked recipes for current user
 $likedRecipes = [];
@@ -213,6 +219,18 @@ closeDBConnection($conn);
                                     onchange="this.form.submit()">
                                 <span>Sulawesi</span>
                             </label>
+                            <label class="filter-checkbox">
+                                <input type="checkbox" name="regions[]" value="Bali & Nusa Tenggara"
+                                    <?php echo in_array('Bali & Nusa Tenggara', $regions) ? 'checked' : ''; ?>
+                                    onchange="this.form.submit()">
+                                <span>Bali & Nusa Tenggara</span>
+                            </label>
+                            <label class="filter-checkbox">
+                                <input type="checkbox" name="regions[]" value="Papua & Maluku"
+                                    <?php echo in_array('Papua & Maluku', $regions) ? 'checked' : ''; ?>
+                                    onchange="this.form.submit()">
+                                <span>Papua & Maluku</span>
+                            </label>
                         </div>
                     </div>
 
@@ -222,7 +240,7 @@ closeDBConnection($conn);
                         <select name="sort_rating" class="form-select" onchange="this.form.submit()">
                             <option value="newest" <?php echo $sortRating == 'newest' ? 'selected' : ''; ?>>Terbaru</option>
                             <option value="highest" <?php echo $sortRating == 'highest' ? 'selected' : ''; ?>>Rating Tertinggi</option>
-                            <option value="lowest" <?php echo $sortRating == 'lowest' ? 'selected' : ''; ?>>Rating Terendah</option>
+                            <option value="popular" <?php echo $sortRating == 'popular' ? 'selected' : ''; ?>>Terpopuler</option>
                         </select>
                     </div>
 
@@ -269,6 +287,11 @@ closeDBConnection($conn);
                                         <span><?php echo htmlspecialchars($recipe['author_name']); ?></span>
                                     </div>
 
+                                    <div class="recipe-card-meta">
+                                        <i class="fas fa-map-marker-alt icon-sm"></i>
+                                        <span><?php echo htmlspecialchars($recipe['region']); ?></span>
+                                    </div>
+
                                     <div class="recipe-card-footer">
                                         <div class="flex items-center gap-1">
                                             <i class="fas fa-clock icon-sm"></i>
@@ -285,6 +308,18 @@ closeDBConnection($conn);
                             </div>
                         <?php endforeach; ?>
                     </div>
+
+                    <?php if ($hasMore): ?>
+                        <div style="text-align: center; margin-top: 2rem;">
+                            <a href="?<?php
+                                        $params = $_GET;
+                                        $params['show_all'] = '1';
+                                        echo http_build_query($params);
+                                        ?>" class="btn btn-primary" style="padding: 0.75rem 2rem;">
+                                <i class="fas fa-plus-circle"></i> Lihat Lainnya (<?php echo $totalRecipes - 8; ?> resep lagi)
+                            </a>
+                        </div>
+                    <?php endif; ?>
                 <?php else: ?>
                     <div class="card" style="padding: 3rem; text-align: center;">
                         <i class="fas fa-hat-chef" style="font-size: 4rem; color: #d1d5db; margin-bottom: 1rem;"></i>
