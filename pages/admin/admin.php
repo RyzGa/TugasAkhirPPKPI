@@ -12,7 +12,7 @@ $conn = getDBConnection();
 $stmt = $conn->prepare("SELECT r.*, 
                         (SELECT COUNT(*) FROM reviews WHERE recipe_id = r.id) as actual_review_count,
                         (SELECT AVG(rating) FROM reviews WHERE recipe_id = r.id) as actual_rating
-                        FROM recipes r ORDER BY r.created_at DESC");
+                        FROM recipes r ORDER BY r.created_at ASC");
 $stmt->execute();
 $recipes = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
@@ -126,7 +126,7 @@ closeDBConnection($conn);
                 <table style="width: 100%; border-collapse: collapse;">
                     <thead>
                         <tr style="background: var(--color-bg-light); border-bottom: 2px solid var(--color-border);">
-                            <th style="padding: 0.75rem; text-align: left;">ID</th>
+                            <th style="padding: 0.75rem; text-align: left;">No</th>
                             <th style="padding: 0.75rem; text-align: left;">Judul</th>
                             <th style="padding: 0.75rem; text-align: left;">Penulis</th>
                             <th style="padding: 0.75rem; text-align: left;">Kategori</th>
@@ -136,9 +136,12 @@ closeDBConnection($conn);
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($recipes as $recipe): ?>
+                        <?php 
+                        $no = 1;
+                        foreach ($recipes as $recipe): 
+                        ?>
                             <tr style="border-bottom: 1px solid var(--color-border);">
-                                <td style="padding: 0.75rem;"><?php echo $recipe['id']; ?></td>
+                                <td style="padding: 0.75rem;"><?php echo $no++; ?></td>
                                 <td style="padding: 0.75rem;">
                                     <a href="../recipe/recipe_detail.php?id=<?php echo $recipe['id']; ?>" style="color: var(--color-primary); text-decoration: none; font-weight: 500;">
                                         <?php echo htmlspecialchars($recipe['title']); ?>
@@ -183,7 +186,7 @@ closeDBConnection($conn);
     <script>
         function confirmDelete(recipeId) {
             if (confirm('Apakah Anda yakin ingin menghapus resep ini?')) {
-                window.location.href = 'api/delete_recipe.php?id=' + recipeId;
+                window.location.href = '../../api/delete_recipe.php?id=' + recipeId;
             }
         }
     </script>
