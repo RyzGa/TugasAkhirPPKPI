@@ -1,5 +1,29 @@
 <?php
 session_start();
+
+// Set session cookie agar hilang saat browser ditutup (bukan restore)
+// Hanya berlaku untuk session baru atau login baru
+if (!isset($_SESSION['initialized'])) {
+    ini_set('session.cookie_lifetime', 0); // 0 = hilang saat browser ditutup
+    session_regenerate_id(true); // Generate ID baru untuk keamanan
+    $_SESSION['initialized'] = true;
+}
+
+// Session timeout: 30 menit inactivity (1800 detik)
+$timeout_duration = 1800;
+
+// Cek apakah session sudah timeout
+if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > $timeout_duration) {
+    // Session expired, destroy dan redirect ke login
+    session_unset();
+    session_destroy();
+    session_start();
+    $_SESSION['session_expired'] = true;
+}
+
+// Update last activity time
+$_SESSION['last_activity'] = time();
+
 require_once 'database.php';
 require_once 'cloudinary.php';
 

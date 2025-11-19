@@ -1,17 +1,12 @@
 <?php
-// Halaman Profil User
-// Menampilkan resep yang dibuat user dan resep yang di-like
-
+// Profil User
 require_once '../../config/functions.php';
 require_once '../../config/database.php';
 
-requireLogin(); // Harus login untuk akses halaman ini
+requireLogin();
 
 $user = getCurrentUser();
 $conn = getDBConnection();
-
-// Query: SELECT resep-resep yang dibuat oleh user ini
-// Dengan subquery untuk menghitung actual_review_count dan actual_rating
 $myRecipesStmt = $conn->prepare("SELECT r.*, 
                                   (SELECT COUNT(*) FROM reviews WHERE recipe_id = r.id) as actual_review_count,
                                   (SELECT AVG(rating) FROM reviews WHERE recipe_id = r.id) as actual_rating
@@ -20,8 +15,6 @@ $myRecipesStmt->bind_param("i", $user['id']);
 $myRecipesStmt->execute();
 $myRecipes = $myRecipesStmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
-// Query: SELECT resep-resep yang di-like oleh user ini
-// JOIN dengan liked_recipes untuk ambil resep favorit
 $likedStmt = $conn->prepare("SELECT r.*, 
                              (SELECT COUNT(*) FROM reviews WHERE recipe_id = r.id) as actual_review_count,
                              (SELECT AVG(rating) FROM reviews WHERE recipe_id = r.id) as actual_rating
@@ -166,9 +159,17 @@ closeDBConnection($conn);
                             <div class="card-content">
                                 <h3 class="recipe-card-title"><?php echo htmlspecialchars($recipe['title']); ?></h3>
                                 <div class="recipe-card-footer">
-                                    <div class="flex items-center gap-1">
-                                        <i class="fas fa-clock icon-sm"></i>
-                                        <span><?php echo htmlspecialchars($recipe['cooking_time']); ?></span>
+                                    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                                        <div class="flex items-center gap-1">
+                                            <i class="fas fa-clock icon-sm"></i>
+                                            <span><?php echo htmlspecialchars($recipe['cooking_time']); ?></span>
+                                        </div>
+                                        <?php if (!empty($recipe['servings'])): ?>
+                                            <div class="flex items-center gap-1">
+                                                <i class="fas fa-utensils icon-sm"></i>
+                                                <span><?php echo htmlspecialchars($recipe['servings']); ?></span>
+                                            </div>
+                                        <?php endif; ?>
                                     </div>
                                     <div class="recipe-card-rating">
                                         <i class="fas fa-star star-icon"></i>
@@ -212,9 +213,17 @@ closeDBConnection($conn);
                                     <span><?php echo htmlspecialchars($recipe['author_name']); ?></span>
                                 </div>
                                 <div class="recipe-card-footer">
-                                    <div class="flex items-center gap-1">
-                                        <i class="fas fa-clock icon-sm"></i>
-                                        <span><?php echo htmlspecialchars($recipe['cooking_time']); ?></span>
+                                    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                                        <div class="flex items-center gap-1">
+                                            <i class="fas fa-clock icon-sm"></i>
+                                            <span><?php echo htmlspecialchars($recipe['cooking_time']); ?></span>
+                                        </div>
+                                        <?php if (!empty($recipe['servings'])): ?>
+                                            <div class="flex items-center gap-1">
+                                                <i class="fas fa-utensils icon-sm"></i>
+                                                <span><?php echo htmlspecialchars($recipe['servings']); ?></span>
+                                            </div>
+                                        <?php endif; ?>
                                     </div>
                                     <div class="recipe-card-rating">
                                         <i class="fas fa-star star-icon"></i>
@@ -240,17 +249,7 @@ closeDBConnection($conn);
     </div>
 
     <script>
-        // Log page load
-        console.log('👤 Profile page loaded');
-        console.log('📊 User info:', {
-            name: '<?php echo addslashes($user['name']); ?>',
-            email: '<?php echo addslashes($user['email']); ?>',
-            myRecipesCount: <?php echo count($myRecipes); ?>,
-            likedRecipesCount: <?php echo count($likedRecipes); ?>
-        });
-
         function showTab(tabName) {
-            console.log('📑 Switching to tab:', tabName);
             // Hide all tabs
             document.querySelectorAll('.tab-content').forEach(content => {
                 content.style.display = 'none';
@@ -269,21 +268,7 @@ closeDBConnection($conn);
             const activeButton = document.getElementById('tab-' + tabName);
             activeButton.style.borderBottomColor = 'var(--color-primary)';
             activeButton.style.color = 'var(--color-primary)';
-            console.log('✅ Tab switched to:', tabName);
         }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('✅ Profile page initialized');
-
-            // Log recipe card clicks
-            const recipeCards = document.querySelectorAll('.recipe-card');
-            recipeCards.forEach((card, index) => {
-                card.addEventListener('click', function() {
-                    const title = this.querySelector('.recipe-card-title')?.textContent;
-                    console.log(`🍽️ Recipe clicked: "${title}"`);
-                });
-            });
-        });
     </script>
     <script src="../../assets/js/dropdown.js"></script>
     <?php include '../../includes/footer.php'; ?>

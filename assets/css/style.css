@@ -917,3 +917,27 @@ p {
     gap: 1.5rem;
   }
 }
+
+/* Share Menu Styles */
+.share-option:hover {
+  background-color: #f3f4f6 !important;
+}
+
+.share-option:active {
+  background-color: #e5e7eb !important;
+}
+
+#shareMenu {
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

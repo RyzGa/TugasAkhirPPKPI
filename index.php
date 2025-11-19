@@ -1,14 +1,11 @@
 <?php
-// Halaman Dashboard Utama
-// Menampilkan daftar resep dengan filter, search, dan pagination
-
+// Dashboard - Resep dengan filter, search, pagination
 require_once 'config/functions.php';
 require_once 'config/database.php';
 
 $conn = getDBConnection();
 $user = getCurrentUser();
 
-// Ambil parameter filter dari URL
 $search = isset($_GET['search']) ? sanitizeInput($_GET['search']) : '';
 $categories = isset($_GET['categories']) ? $_GET['categories'] : [];
 $regions = isset($_GET['regions']) ? $_GET['regions'] : [];
@@ -16,7 +13,7 @@ $cookingTime = isset($_GET['cooking_time']) ? sanitizeInput($_GET['cooking_time'
 $sortRating = isset($_GET['sort_rating']) ? sanitizeInput($_GET['sort_rating']) : 'newest';
 $showAll = isset($_GET['show_all']) ? true : false;
 
-// Query: SELECT resep dengan subquery untuk like dan review count
+// Query resep dengan like dan review count
 $query = "SELECT r.*, 
           (SELECT COUNT(*) FROM liked_recipes WHERE recipe_id = r.id AND user_id = ?) as is_liked,
           (SELECT COUNT(*) FROM reviews WHERE recipe_id = r.id) as actual_review_count,
@@ -25,15 +22,14 @@ $query = "SELECT r.*,
 $params = [$user ? $user['id'] : 0];
 $types = "i";
 
-// Filter: Search berdasarkan title atau description
 if ($search) {
     $query .= " AND (r.title LIKE ? OR r.description LIKE ?)";
     $params[] = "%$search%";
     $params[] = "%$search%";
-    $types .= "ss";
+    $types .= 's';
 }
 
-// Filter: Kategori (Makanan Utama, Camilan, Minuman)
+// Filter: Kategori resep (bisa multiple selection)
 if (!empty($categories)) {
     $placeholders = implode(',', array_fill(0, count($categories), '?'));
     $query .= " AND r.category IN ($placeholders)";
@@ -43,7 +39,7 @@ if (!empty($categories)) {
     }
 }
 
-// Filter: Region (Jawa, Sumatera, dll)
+// Filter: Wilayah/daerah asal resep
 if (!empty($regions)) {
     $placeholders = implode(',', array_fill(0, count($regions), '?'));
     $query .= " AND r.region IN ($placeholders)";
@@ -53,7 +49,6 @@ if (!empty($regions)) {
     }
 }
 
-// Sorting: Terbaru, Rating Tertinggi, atau Terpopuler
 switch ($sortRating) {
     case 'highest':
         $query .= " ORDER BY actual_rating DESC, r.created_at DESC";
@@ -61,12 +56,11 @@ switch ($sortRating) {
     case 'popular':
         $query .= " ORDER BY actual_review_count DESC, r.created_at DESC";
         break;
-    default: // newest
+    default:
         $query .= " ORDER BY r.created_at DESC";
         break;
 }
 
-// Eksekusi query
 $stmt = $conn->prepare($query);
 if (count($params) > 1) {
     $stmt->bind_param($types, ...$params);
@@ -77,12 +71,10 @@ $stmt->execute();
 $result = $stmt->get_result();
 $allRecipes = $result->fetch_all(MYSQLI_ASSOC);
 
-// Pagination: Tampilkan 8 resep per halaman
 $totalRecipes = count($allRecipes);
 $recipes = $showAll ? $allRecipes : array_slice($allRecipes, 0, 8);
 $hasMore = $totalRecipes > 8 && !$showAll;
 
-// Query: Ambil daftar resep yang disukai user (untuk tampilkan icon love)
 $likedRecipes = [];
 if ($user) {
     $likedQuery = "SELECT recipe_id FROM liked_recipes WHERE user_id = ?";
@@ -300,9 +292,17 @@ closeDBConnection($conn);
                                     </div>
 
                                     <div class="recipe-card-footer">
-                                        <div class="flex items-center gap-1">
-                                            <i class="fas fa-clock icon-sm"></i>
-                                            <span><?php echo htmlspecialchars($recipe['cooking_time']); ?></span>
+                                        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                                            <div class="flex items-center gap-1">
+                                                <i class="fas fa-clock icon-sm"></i>
+                                                <span><?php echo htmlspecialchars($recipe['cooking_time']); ?></span>
+                                            </div>
+                                            <?php if (!empty($recipe['servings'])): ?>
+                                                <div class="flex items-center gap-1">
+                                                    <i class="fas fa-utensils icon-sm"></i>
+                                                    <span><?php echo htmlspecialchars($recipe['servings']); ?></span>
+                                                </div>
+                                            <?php endif; ?>
                                         </div>
 
                                         <div class="recipe-card-rating">
@@ -339,19 +339,7 @@ closeDBConnection($conn);
     </div>
 
     <script>
-        // Log page load
-        console.log('📄 Dashboard page loaded');
-        console.log('🔍 Current filters:', {
-            search: '<?php echo $search; ?>',
-            categories: <?php echo json_encode($categories); ?>,
-            regions: <?php echo json_encode($regions); ?>,
-            sortRating: '<?php echo $sortRating; ?>',
-            showAll: <?php echo $showAll ? 'true' : 'false'; ?>
-        });
-        console.log('📊 Showing <?php echo count($recipes); ?> of <?php echo $totalRecipes; ?> recipes');
-
         function toggleLike(recipeId) {
-            console.log('❤️ Toggling like for recipe ID:', recipeId);
             fetch('api/toggle_like.php', {
                     method: 'POST',
                     headers: {
@@ -361,61 +349,16 @@ closeDBConnection($conn);
                         recipe_id: recipeId
                     })
                 })
-                .then(response => {
-                    console.log('📡 Received response from server');
-                    return response.json();
-                })
+                .then(response => response.json())
                 .then(data => {
-                    console.log('✅ Like toggle response:', data);
                     if (data.success) {
-                        console.log('🔄 Reloading page to update like status');
                         location.reload();
                     } else {
-                        console.error('❌ Like toggle failed:', data.message);
                         alert(data.message || 'Terjadi kesalahan');
                     }
                 })
-                .catch(error => {
-                    console.error('❌ Error toggling like:', error);
-                });
+                .catch(error => console.error('Error:', error));
         }
-
-        // Log when recipe card is clicked
-        document.addEventListener('DOMContentLoaded', function() {
-            const recipeCards = document.querySelectorAll('.recipe-card');
-            recipeCards.forEach((card, index) => {
-                card.addEventListener('click', function() {
-                    const title = this.querySelector('.recipe-card-title')?.textContent;
-                    console.log(`🍽️ Recipe card clicked: "${title}" (index: ${index})`);
-                });
-            });
-
-            // Log filter changes
-            const filterCheckboxes = document.querySelectorAll('.filter-checkbox input');
-            filterCheckboxes.forEach(checkbox => {
-                checkbox.addEventListener('change', function() {
-                    console.log(`🔲 Filter changed: ${this.name} = ${this.value} (${this.checked ? 'checked' : 'unchecked'})`);
-                });
-            });
-
-            // Log sort change
-            const sortSelect = document.querySelector('select[name="sort_rating"]');
-            if (sortSelect) {
-                sortSelect.addEventListener('change', function() {
-                    console.log(`🔄 Sort changed to: ${this.value}`);
-                });
-            }
-
-            // Log search
-            const searchInput = document.querySelector('.search-input');
-            if (searchInput) {
-                searchInput.addEventListener('input', function() {
-                    console.log(`🔍 Search input: "${this.value}"`);
-                });
-            }
-
-            console.log('✅ Dashboard event listeners initialized');
-        });
     </script>
     <script src="assets/js/dropdown.js"></script>
 

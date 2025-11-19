@@ -1,14 +1,10 @@
 <?php
-// Halaman Detail Resep
-// Menampilkan informasi lengkap resep, review, dan fitur like
-
+// Detail Resep
 require_once '../../config/functions.php';
 require_once '../../config/database.php';
 
 $user = getCurrentUser();
 $recipeId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-
-// Validasi recipe ID
 if ($recipeId === 0) {
     header('Location: ../../index.php');
     exit;
@@ -16,7 +12,6 @@ if ($recipeId === 0) {
 
 $conn = getDBConnection();
 
-// Query: SELECT detail resep dengan status like user
 $stmt = $conn->prepare("SELECT r.*, 
                         (SELECT COUNT(*) FROM liked_recipes WHERE recipe_id = r.id AND user_id = ?) as is_liked
                         FROM recipes r WHERE r.id = ?");
@@ -26,23 +21,20 @@ $stmt->execute();
 $result = $stmt->get_result();
 $recipe = $result->fetch_assoc();
 
-// Cek apakah resep ditemukan
 if (!$recipe) {
     header('Location: ../../index.php');
     exit;
 }
 
-// Parse ingredients dan steps dari JSON ke array
-$ingredients = json_decode($recipe['ingredients'], true);
-$steps = json_decode($recipe['steps'], true);
+// Parse JSON ingredients dan steps untuk ditampilkan
+$ingredients = json_decode($recipe['ingredients'], true) ?? [];
+$steps = json_decode($recipe['steps'], true) ?? [];
 
-// Query: SELECT semua review untuk resep ini
 $reviewStmt = $conn->prepare("SELECT * FROM reviews WHERE recipe_id = ? ORDER BY created_at DESC");
 $reviewStmt->bind_param("i", $recipeId);
 $reviewStmt->execute();
 $reviews = $reviewStmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
-// Hitung rating dan jumlah review yang sebenarnya
 $actualReviewCount = count($reviews);
 $actualRating = 0;
 if ($actualReviewCount > 0) {
@@ -53,18 +45,14 @@ if ($actualReviewCount > 0) {
     $actualRating = $totalRating / $actualReviewCount;
 }
 
-// Handle review submission: user mengirim rating dan komentar
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_review']) && $user) {
     $rating = (int)$_POST['rating'];
     $comment = sanitizeInput($_POST['comment']);
 
-    // Query: INSERT review baru ke database
     $insertReview = $conn->prepare("INSERT INTO reviews (recipe_id, user_id, author_name, author_avatar, rating, comment) VALUES (?, ?, ?, ?, ?, ?)");
     $insertReview->bind_param("iissis", $recipeId, $user['id'], $user['name'], $user['avatar'], $rating, $comment);
 
     if ($insertReview->execute()) {
-        // Query: UPDATE rating dan review count di tabel recipes
-        // Menghitung ulang AVG rating dan COUNT review dari tabel reviews
         $updateRating = $conn->prepare("UPDATE recipes SET 
                                         rating = (SELECT AVG(rating) FROM reviews WHERE recipe_id = ?),
                                         review_count = (SELECT COUNT(*) FROM reviews WHERE recipe_id = ?)
@@ -72,7 +60,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_review']) && $
         $updateRating->bind_param("iii", $recipeId, $recipeId, $recipeId);
         $updateRating->execute();
 
-        // Refresh halaman untuk menampilkan review baru
         header("Location: recipe_detail.php?id=$recipeId");
         exit;
     }
@@ -89,9 +76,31 @@ closeDBConnection($conn);
     <title><?php echo htmlspecialchars($recipe['title']); ?> - Nusa Bites</title>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
 <body>
+    <?php if (isset($_GET['success'])): ?>
+        <script>
+            <?php if ($_GET['success'] === 'added'): ?>
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil!',
+                    text: 'Resep berhasil ditambahkan!',
+                    confirmButtonColor: '#28a745',
+                    timer: 3000
+                });
+            <?php elseif ($_GET['success'] === 'updated'): ?>
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil!',
+                    text: 'Resep berhasil diupdate!',
+                    confirmButtonColor: '#28a745',
+                    timer: 3000
+                });
+            <?php endif; ?>
+        </script>
+    <?php endif; ?>
     <!-- Header -->
     <header class="header">
         <div class="container header-content">
@@ -145,7 +154,32 @@ closeDBConnection($conn);
                 <i class="fas fa-arrow-left"></i> Kembali
             </a>
 
-            <div style="display: flex; gap: 0.5rem;">
+            <div style="display: flex; gap: 0.5rem; position: relative;">
+                <!-- Share Button -->
+                <button onclick="toggleShareMenu()" class="btn btn-secondary">
+                    <i class="fas fa-share-alt"></i> Share
+                </button>
+
+                <!-- Share Menu Dropdown -->
+                <div id="shareMenu" style="display: none; position: absolute; right: 0; top: 100%; margin-top: 0.5rem; background: white; border-radius: 0.5rem; box-shadow: var(--shadow-lg); padding: 0.5rem; z-index: 1000; min-width: 220px;">
+                    <button onclick="shareWhatsApp()" class="share-option" style="width: 100%; text-align: left; padding: 0.75rem; border: none; background: transparent; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; border-radius: 0.375rem;">
+                        <i class="fab fa-whatsapp" style="color: #25D366; font-size: 1.25rem;"></i>
+                        <span>WhatsApp</span>
+                    </button>
+                    <button onclick="shareFacebook()" class="share-option" style="width: 100%; text-align: left; padding: 0.75rem; border: none; background: transparent; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; border-radius: 0.375rem;">
+                        <i class="fab fa-facebook" style="color: #1877F2; font-size: 1.25rem;"></i>
+                        <span>Facebook</span>
+                    </button>
+                    <button onclick="shareTwitter()" class="share-option" style="width: 100%; text-align: left; padding: 0.75rem; border: none; background: transparent; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; border-radius: 0.375rem;">
+                        <i class="fab fa-twitter" style="color: #1DA1F2; font-size: 1.25rem;"></i>
+                        <span>Twitter</span>
+                    </button>
+                    <button onclick="copyLink()" class="share-option" style="width: 100%; text-align: left; padding: 0.75rem; border: none; background: transparent; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; border-radius: 0.375rem;">
+                        <i class="fas fa-link" style="color: #6b7280; font-size: 1.25rem;"></i>
+                        <span>Copy Link</span>
+                    </button>
+                </div>
+
                 <?php if ($user && $user['role'] !== 'admin'): ?>
                     <button onclick="toggleLike(<?php echo $recipe['id']; ?>)"
                         class="btn <?php echo $recipe['is_liked'] ? 'btn-primary' : 'btn-secondary'; ?>">
@@ -220,6 +254,12 @@ closeDBConnection($conn);
                             <i class="fas fa-clock"></i>
                             <span><?php echo htmlspecialchars($recipe['cooking_time']); ?></span>
                         </div>
+                        <?php if (!empty($recipe['servings'])): ?>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fas fa-utensils"></i>
+                                <span><?php echo htmlspecialchars($recipe['servings']); ?></span>
+                            </div>
+                        <?php endif; ?>
                         <div style="display: flex; align-items: center; gap: 0.5rem;">
                             <i class="fas fa-star star-icon"></i>
                             <span><?php echo $actualReviewCount > 0 ? number_format($actualRating, 1) : '0.0'; ?> (<?php echo $actualReviewCount; ?> review)</span>
@@ -410,19 +450,8 @@ closeDBConnection($conn);
     </div>
 
     <script>
-        // Log page load
-        console.log('📖 Recipe detail page loaded');
-        console.log('🍽️ Recipe ID:', <?php echo $recipeId; ?>);
-        console.log('📊 Recipe info:', {
-            title: '<?php echo addslashes($recipe['title']); ?>',
-            rating: <?php echo $actualRating; ?>,
-            reviewCount: <?php echo $actualReviewCount; ?>,
-            author: '<?php echo addslashes($recipe['author_name']); ?>'
-        });
-
         function updateStars(radio) {
             const value = parseInt(radio.value);
-            console.log('⭐ Rating star selected:', value);
             const stars = document.querySelectorAll('[data-star]');
             stars.forEach(star => {
                 const starValue = parseInt(star.getAttribute('data-star'));
@@ -434,30 +463,14 @@ closeDBConnection($conn);
             });
         }
 
-        // Initialize stars
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('✅ Recipe detail page initialized');
             const checkedRadio = document.querySelector('input[name="rating"]:checked');
             if (checkedRadio) {
                 updateStars(checkedRadio);
             }
-
-            // Log review form submission
-            const reviewForm = document.querySelector('form[method="POST"]');
-            if (reviewForm) {
-                reviewForm.addEventListener('submit', function() {
-                    const rating = document.querySelector('input[name="rating"]:checked')?.value;
-                    const comment = document.querySelector('textarea[name="comment"]')?.value;
-                    console.log('📝 Submitting review:', {
-                        rating,
-                        commentLength: comment?.length
-                    });
-                });
-            }
         });
 
         function toggleLike(recipeId) {
-            console.log('❤️ Toggling like for recipe ID:', recipeId);
             fetch('api/toggle_like.php', {
                     method: 'POST',
                     headers: {
@@ -467,30 +480,113 @@ closeDBConnection($conn);
                         recipe_id: recipeId
                     })
                 })
-                .then(response => {
-                    console.log('📡 Received like toggle response');
-                    return response.json();
-                })
+                .then(response => response.json())
                 .then(data => {
-                    console.log('✅ Like toggle result:', data);
                     if (data.success) {
-                        console.log('🔄 Reloading page');
                         location.reload();
                     } else {
-                        console.error('❌ Like toggle failed:', data.message);
                         alert(data.message || 'Terjadi kesalahan');
                     }
                 });
         }
 
         function confirmDelete(recipeId) {
-            console.log('🗑️ Delete confirmation requested for recipe ID:', recipeId);
-            if (confirm('Apakah Anda yakin ingin menghapus resep ini?')) {
-                console.log('✅ Delete confirmed, redirecting...');
-                window.location.href = '../../api/delete_recipe.php?id=' + recipeId;
-            } else {
-                console.log('❌ Delete cancelled');
+            Swal.fire({
+                title: 'Hapus Resep?',
+                text: 'Resep yang dihapus tidak dapat dikembalikan!',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Ya, Hapus!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = '../../api/delete_recipe.php?id=' + recipeId;
+                }
+            });
+        }
+
+        // Share Functions
+        const recipeUrl = window.location.href.split('&success=')[0]; // Remove success param
+        const recipeTitle = '<?php echo addslashes($recipe["title"]); ?>';
+        const recipeDescription = '<?php echo addslashes(substr($recipe["description"], 0, 100)); ?>...';
+
+        function toggleShareMenu() {
+            const menu = document.getElementById('shareMenu');
+            menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // Close share menu when clicking outside
+        document.addEventListener('click', function(event) {
+            const shareMenu = document.getElementById('shareMenu');
+            const shareButton = event.target.closest('button[onclick="toggleShareMenu()"]');
+
+            if (!shareButton && !shareMenu.contains(event.target)) {
+                shareMenu.style.display = 'none';
             }
+        });
+
+        function shareWhatsApp() {
+            const text = `${recipeTitle}\n\n${recipeDescription}\n\nLihat resep lengkapnya di: ${recipeUrl}`;
+            const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
+            window.open(whatsappUrl, '_blank');
+            toggleShareMenu();
+        }
+
+        function shareFacebook() {
+            const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(recipeUrl)}`;
+            window.open(facebookUrl, '_blank', 'width=600,height=400');
+            toggleShareMenu();
+        }
+
+        function shareTwitter() {
+            const text = `${recipeTitle} - ${recipeDescription}`;
+            const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(recipeUrl)}`;
+            window.open(twitterUrl, '_blank', 'width=600,height=400');
+            toggleShareMenu();
+        }
+
+        function copyLink() {
+            navigator.clipboard.writeText(recipeUrl).then(() => {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil!',
+                    text: 'Link berhasil disalin ke clipboard',
+                    confirmButtonColor: '#28a745',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                toggleShareMenu();
+            }).catch(err => {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = recipeUrl;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil!',
+                        text: 'Link berhasil disalin',
+                        confirmButtonColor: '#28a745',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                } catch (err) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal',
+                        text: 'Gagal menyalin link',
+                        confirmButtonColor: '#d33'
+                    });
+                }
+                document.body.removeChild(textArea);
+                toggleShareMenu();
+            });
         }
     </script>
     <script src="../../assets/js/dropdown.js"></script>

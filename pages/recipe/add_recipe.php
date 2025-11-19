@@ -1,38 +1,31 @@
 <?php
-// Halaman Tambah Resep 
-// User dapat menambahkan resep baru dengan gambar, bahan, dan langkah-langkah 
-
+// Tambah Resep - User dapat menambahkan resep baru
 require_once '../../config/functions.php';
 require_once '../../config/database.php';
 
-requireLogin(); // Harus login untuk akses halaman ini
+requireLogin();
 
 $user = getCurrentUser();
 $error = '';
 $success = '';
 
-// Proses form tambah resep saat method POST 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Ambil dan sanitize input dari form
     $title = sanitizeInput($_POST['title']);
     $description = sanitizeInput($_POST['description']);
     $image = ''; // Default empty
     $cookingTime = sanitizeInput($_POST['cooking_time']);
+    $servings = sanitizeInput($_POST['servings']);
     $category = sanitizeInput($_POST['category']);
     $region = sanitizeInput($_POST['region']);
 
-    // Handle upload gambar resep 
     if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
         $allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
-        $maxSize = 5 * 1024 * 1024; // 5MB
-
-        // Validasi tipe dan ukuran file
+        $maxSize = 5 * 1024 * 1024;
         if (!in_array($_FILES['image']['type'], $allowedTypes)) {
             $error = 'Format file tidak didukung. Gunakan JPG, PNG, atau WEBP.';
         } elseif ($_FILES['image']['size'] > $maxSize) {
             $error = 'Ukuran file terlalu besar. Maksimal 5MB.';
         } else {
-            // Upload ke Cloudinary cloud storage
             $cloudinaryResult = uploadToCloudinary($_FILES['image']['tmp_name'], 'nusabites/recipes');
 
             if ($cloudinaryResult) {
@@ -43,33 +36,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // Parse ingredients dan steps dari array input 
     $ingredients = isset($_POST['ingredients']) ? array_filter(array_map('trim', $_POST['ingredients'])) : [];
     $steps = isset($_POST['steps']) ? array_filter(array_map('trim', $_POST['steps'])) : [];
 
-    // Validasi semua field required
     if (empty($error) && (empty($title) || empty($description) || count($ingredients) === 0 || count($steps) === 0)) {
         $error = 'Mohon lengkapi semua field yang diperlukan!';
     } elseif (empty($error)) {
         $conn = getDBConnection();
 
-        // Convert array ke JSON untuk disimpan di database
         $ingredientsJson = json_encode($ingredients);
         $stepsJson = json_encode($steps);
-
-        // Query: INSERT resep baru ke database
-        $stmt = $conn->prepare("INSERT INTO recipes (title, description, image, author_id, author_name, author_avatar, cooking_time, category, region, ingredients, steps) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt = $conn->prepare("INSERT INTO recipes (title, description, image, author_id, author_name, author_avatar, cooking_time, servings, category, region, ingredients, steps) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
         if (!$stmt) {
             $error = 'Database prepare error: ' . $conn->error;
         } else {
-            $stmt->bind_param("sssisssssss", $title, $description, $image, $user['id'], $user['name'], $user['avatar'], $cookingTime, $category, $region, $ingredientsJson, $stepsJson);
+            $stmt->bind_param("sssissssssss", $title, $description, $image, $user['id'], $user['name'], $user['avatar'], $cookingTime, $servings, $category, $region, $ingredientsJson, $stepsJson);
 
             if ($stmt->execute()) {
                 $success = 'Resep berhasil ditambahkan!';
                 $newRecipeId = $stmt->insert_id;
-                // Redirect ke halaman detail resep yang baru dibuat
-                header("Location: recipe_detail.php?id=$newRecipeId");
+                header("Location: recipe_detail.php?id=$newRecipeId&success=added");
                 exit;
             } else {
                 $error = 'Terjadi kesalahan saat menambahkan resep: ' . $stmt->error;
@@ -89,6 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>Tambah Resep - Nusa Bites</title>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
 <body>
@@ -144,14 +132,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <h1 style="margin-bottom: 0.5rem;"><i class="fas fa-plus-circle"></i> Tambah Resep Baru</h1>
             <p class="text-gray" style="margin-bottom: 2rem;">Bagikan resep masakan favorit Anda dengan komunitas Nusa Bites</p>
 
-            <?php if ($error): ?>
-                <div class="alert alert-error"><?php echo htmlspecialchars($error); ?></div>
-            <?php endif; ?>
-
-            <?php if ($success): ?>
-                <div class="alert alert-success"><?php echo htmlspecialchars($success); ?></div>
-            <?php endif; ?>
-
             <form method="POST" action="" enctype="multipart/form-data">
                 <div class="form-group">
                     <label for="title" class="form-label">Judul Resep *</label>
@@ -172,12 +152,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <small class="text-gray">Upload gambar resep (JPG, PNG, atau WEBP, maksimal 5MB). Kosongkan jika tidak ada gambar.</small>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 1rem;">
                     <div class="form-group">
                         <label for="cooking_time" class="form-label">Waktu Memasak *</label>
                         <input type="text" id="cooking_time" name="cooking_time" class="form-input" required
                             placeholder="30 menit"
                             value="<?php echo isset($_POST['cooking_time']) ? htmlspecialchars($_POST['cooking_time']) : ''; ?>">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="servings" class="form-label">Porsi *</label>
+                        <input type="text" id="servings" name="servings" class="form-input" required
+                            placeholder="4 porsi"
+                            value="<?php echo isset($_POST['servings']) ? htmlspecialchars($_POST['servings']) : ''; ?>">
                     </div>
 
                     <div class="form-group">
@@ -255,65 +242,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <script>
-        // Log page load
-        console.log('➕ Add recipe page loaded');
-
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('✅ Add recipe page initialized');
-
-            // Log form submission
-            const recipeForm = document.querySelector('form');
-            if (recipeForm) {
-                recipeForm.addEventListener('submit', function() {
-                    const formData = new FormData(this);
-                    console.log('📝 Submitting new recipe');
-                    console.log('📋 Form data:', {
-                        title: formData.get('title'),
-                        category: formData.get('category'),
-                        region: formData.get('region'),
-                        cookingTime: formData.get('cooking_time'),
-                        ingredientsCount: formData.getAll('ingredients[]').length,
-                        stepsCount: formData.getAll('steps[]').length
-                    });
-                });
-            }
-
-            // Log image selection
-            const imageInput = document.querySelector('input[type="file"]');
-            if (imageInput) {
-                imageInput.addEventListener('change', function() {
-                    console.log('🖼️ Image selected:', this.files[0]?.name, `(${(this.files[0]?.size / 1024).toFixed(2)} KB)`);
-                });
-            }
-        });
-
         // Add Ingredient
         function addIngredient() {
-            console.log('➕ Adding new ingredient field');
             const list = document.getElementById('ingredientsList');
-            const item = document.createElement('div');
-            item.className = 'ingredient-item';
-            item.style.cssText = 'display: flex; gap: 0.5rem; align-items: center;';
-            item.innerHTML = `
+            const div = document.createElement('div');
+            div.className = 'ingredient-item';
+            div.style.cssText = 'display: flex; gap: 0.5rem; align-items: center;';
+            div.innerHTML = `
                 <input type="text" name="ingredients[]" class="form-input" placeholder="Masukkan bahan" required>
                 <button type="button" class="btn" onclick="removeIngredient(this)" style="background: transparent; color: var(--color-text-gray); padding: 0.5rem; min-width: auto;">
                     <i class="fas fa-times"></i>
                 </button>
             `;
-            list.appendChild(item);
-            console.log('✅ Ingredient field added. Total ingredients:', list.children.length);
+            list.appendChild(div);
         }
 
         // Remove Ingredient
         function removeIngredient(button) {
             const list = document.getElementById('ingredientsList');
             if (list.children.length > 1) {
-                console.log('➖ Removing ingredient field');
                 button.parentElement.remove();
-                console.log('✅ Ingredient removed. Remaining:', list.children.length);
             } else {
-                console.log('⚠️ Cannot remove last ingredient');
-                alert('Minimal harus ada 1 bahan!');
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Perhatian',
+                    text: 'Minimal harus ada 1 bahan!',
+                    confirmButtonColor: '#ff6b6b'
+                });
             }
         }
 
@@ -321,7 +276,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         function addStep() {
             const list = document.getElementById('stepsList');
             const stepNumber = list.children.length + 1;
-            console.log('➕ Adding new step field:', stepNumber);
             const item = document.createElement('div');
             item.className = 'step-item';
             item.style.cssText = 'display: flex; gap: 0.5rem; align-items: center;';
@@ -335,35 +289,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </button>
             `;
             list.appendChild(item);
-            console.log('✅ Step field added. Total steps:', list.children.length);
         }
 
         // Remove Step
         function removeStep(button) {
             const list = document.getElementById('stepsList');
             if (list.children.length > 1) {
-                console.log('➖ Removing step field');
                 button.parentElement.remove();
                 updateStepNumbers();
-                console.log('✅ Step removed. Remaining:', list.children.length);
             } else {
-                console.log('⚠️ Cannot remove last step');
-                alert('Minimal harus ada 1 langkah!');
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Perhatian',
+                    text: 'Minimal harus ada 1 langkah!',
+                    confirmButtonColor: '#ff6b6b'
+                });
             }
         }
 
         // Update Step Numbers
         function updateStepNumbers() {
-            console.log('🔢 Updating step numbers');
             const steps = document.querySelectorAll('#stepsList .step-item');
             steps.forEach((step, index) => {
                 const numberDiv = step.querySelector('div');
                 numberDiv.textContent = index + 1;
             });
-            console.log('✅ Step numbers updated');
         }
     </script>
     <script src="../../assets/js/dropdown.js"></script>
+
+    <?php if ($error): ?>
+        <script>
+            Swal.fire({
+                icon: 'error',
+                title: 'Oops...',
+                text: '<?php echo addslashes($error); ?>',
+                confirmButtonColor: '#d33'
+            });
+        </script>
+    <?php endif; ?>
+
+    <?php if ($success): ?>
+        <script>
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil!',
+                text: '<?php echo addslashes($success); ?>',
+                confirmButtonColor: '#28a745'
+            });
+        </script>
+    <?php endif; ?>
+
     <?php include '../../includes/footer.php'; ?>
 </body>
 

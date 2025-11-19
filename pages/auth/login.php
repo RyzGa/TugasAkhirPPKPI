@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         // Koneksi ke database
         $conn = getDBConnection();
-        
+
         // Query: SELECT user berdasarkan email
         $stmt = $conn->prepare("SELECT id, name, email, password, role, avatar FROM users WHERE email = ?");
         $stmt->bind_param("s", $email);
@@ -33,12 +33,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Verifikasi password dengan hash
             if (password_verify($password, $user['password'])) {
+                // Regenerate session ID untuk keamanan (mencegah session fixation)
+                session_regenerate_id(true);
+
                 // Simpan data user ke session
                 $_SESSION['user_id'] = $user['id'];
                 $_SESSION['user_name'] = $user['name'];
                 $_SESSION['user_email'] = $user['email'];
                 $_SESSION['user_role'] = $user['role'];
                 $_SESSION['user_avatar'] = $user['avatar'];
+                $_SESSION['last_activity'] = time(); // Set waktu login
+                $_SESSION['initialized'] = true; // Tandai session sudah diinisialisasi
 
                 $success = 'Login berhasil! Selamat datang kembali.';
                 // Redirect ke halaman utama
@@ -64,6 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>Masuk - Nusa Bites</title>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
 <body style="background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);">
@@ -95,18 +101,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </a>
                     </p>
                 </div>
-
-                <?php if ($error): ?>
-                    <div class="alert alert-error">
-                        <i class="fas fa-exclamation-circle"></i> <?php echo $error; ?>
-                    </div>
-                <?php endif; ?>
-
-                <?php if ($success): ?>
-                    <div class="alert alert-success">
-                        <i class="fas fa-check-circle"></i> <?php echo $success; ?>
-                    </div>
-                <?php endif; ?>
 
                 <form method="POST" action="login.php">
                     <div class="form-group">
@@ -156,38 +150,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <script>
-        console.log('🔐 Login page loaded');
-
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('✅ Login page initialized');
-
-            // Log form submission
-            const loginForm = document.querySelector('form');
-            if (loginForm) {
-                loginForm.addEventListener('submit', function() {
-                    const email = document.getElementById('email')?.value;
-                    console.log('🔑 Attempting login for email:', email);
-                });
-            }
-        });
-
         function togglePassword() {
             const passwordInput = document.getElementById('password');
             const toggleIcon = document.getElementById('toggleIcon');
 
             if (passwordInput.type === 'password') {
-                console.log('👁️ Showing password');
                 passwordInput.type = 'text';
                 toggleIcon.classList.remove('fa-eye');
                 toggleIcon.classList.add('fa-eye-slash');
             } else {
-                console.log('🙈 Hiding password');
                 passwordInput.type = 'password';
                 toggleIcon.classList.remove('fa-eye-slash');
                 toggleIcon.classList.add('fa-eye');
             }
         }
     </script>
+
+    <?php if (isset($_SESSION['session_expired']) && $_SESSION['session_expired']): ?>
+        <script>
+            Swal.fire({
+                icon: 'warning',
+                title: 'Session Expired',
+                text: 'Sesi Anda telah berakhir karena tidak aktif selama 30 menit. Silakan login kembali.',
+                confirmButtonColor: '#f59e0b'
+            });
+        </script>
+        <?php unset($_SESSION['session_expired']); ?>
+    <?php endif; ?>
+
+    <?php if ($error): ?>
+        <script>
+            Swal.fire({
+                icon: 'error',
+                title: 'Login Gagal',
+                text: '<?php echo addslashes($error); ?>',
+                confirmButtonColor: '#d33'
+            });
+        </script>
+    <?php endif; ?>
+
+    <?php if ($success): ?>
+        <script>
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil!',
+                text: '<?php echo addslashes($success); ?>',
+                confirmButtonColor: '#28a745'
+            });
+        </script>
+    <?php endif; ?>
 </body>
 
 </html>

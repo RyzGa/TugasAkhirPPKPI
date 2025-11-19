@@ -16,7 +16,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'];
     $confirmPassword = $_POST['confirm_password'];
 
-    // Validasi input
     if (empty($name) || empty($email) || empty($password) || empty($confirmPassword)) {
         $error = 'Semua field harus diisi!';
     } elseif ($password !== $confirmPassword) {
@@ -26,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $conn = getDBConnection();
 
-        //Query: Cek apakah email sudah terdaftar
+        // Cek apakah email sudah terdaftar
         $checkStmt = $conn->prepare("SELECT id FROM users WHERE email = ?");
         $checkStmt->bind_param("s", $email);
         $checkStmt->execute();
@@ -35,29 +34,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($checkResult->num_rows > 0) {
             $error = 'Email sudah terdaftar!';
         } else {
-            // Hash password untuk keamanan
-            $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-            $avatar = ""; // Avatar kosong, akan tampil icon default
+            // Cek apakah username sudah digunakan
+            $checkNameStmt = $conn->prepare("SELECT id FROM users WHERE name = ?");
+            $checkNameStmt->bind_param("s", $name);
+            $checkNameStmt->execute();
+            $checkNameResult = $checkNameStmt->get_result();
 
-            // Query: INSERT user baru ke database
-            $stmt = $conn->prepare("INSERT INTO users (name, email, password, avatar) VALUES (?, ?, ?, ?)");
-            $stmt->bind_param("ssss", $name, $email, $hashedPassword, $avatar);
-
-            if ($stmt->execute()) {
-                $success = 'Registrasi berhasil! Silakan login.';
-
-                // Auto login setelah register
-                $_SESSION['user_id'] = $stmt->insert_id;
-                $_SESSION['user_name'] = $name;
-                $_SESSION['user_email'] = $email;
-                $_SESSION['user_role'] = 'user';
-                $_SESSION['user_avatar'] = $avatar;
-
-                // Redirect ke halaman login
-                header('Location: login.php');
-                exit;
+            if ($checkNameResult->num_rows > 0) {
+                $error = 'Username sudah digunakan. Pilih username lain!';
             } else {
-                $error = 'Terjadi kesalahan saat mendaftar. Silakan coba lagi.';
+                // Hash password untuk keamanan
+                $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+                $avatar = ""; // Avatar kosong, akan tampil icon default
+
+                // Query: INSERT user baru ke database
+                $stmt = $conn->prepare("INSERT INTO users (name, email, password, avatar) VALUES (?, ?, ?, ?)");
+                $stmt->bind_param("ssss", $name, $email, $hashedPassword, $avatar);
+
+                if ($stmt->execute()) {
+                    $success = 'Registrasi berhasil! Silakan login.';
+
+                    // Auto login setelah register
+                    $_SESSION['user_id'] = $stmt->insert_id;
+                    $_SESSION['user_name'] = $name;
+                    $_SESSION['user_email'] = $email;
+                    $_SESSION['user_role'] = 'user';
+                    $_SESSION['user_avatar'] = $avatar;
+
+                    // Redirect ke halaman login
+                    header('Location: login.php');
+                    exit;
+                } else {
+                    $error = 'Terjadi kesalahan saat mendaftar. Silakan coba lagi.';
+                }
             }
         }
 
@@ -74,6 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>Daftar - Nusa Bites</title>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
 <body style="background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);">
@@ -104,18 +114,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </a>
                     </p>
                 </div>
-
-                <?php if ($error): ?>
-                    <div class="alert alert-error">
-                        <i class="fas fa-exclamation-circle"></i> <?php echo $error; ?>
-                    </div>
-                <?php endif; ?>
-
-                <?php if ($success): ?>
-                    <div class="alert alert-success">
-                        <i class="fas fa-check-circle"></i> <?php echo $success; ?>
-                    </div>
-                <?php endif; ?>
 
                 <form method="POST" action="register.php">
                     <div class="form-group">
@@ -197,52 +195,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <script>
-        console.log('📝 Register page loaded');
-
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('✅ Register page initialized');
-
-            // Log form submission
-            const registerForm = document.querySelector('form');
-            if (registerForm) {
-                registerForm.addEventListener('submit', function() {
-                    const name = document.getElementById('name')?.value;
-                    const email = document.getElementById('email')?.value;
-                    console.log('📋 Attempting registration:', {
-                        name,
-                        email
-                    });
-                });
-            }
-
-            // Log password validation
-            const passwordInput = document.getElementById('password');
-            const confirmPasswordInput = document.getElementById('confirm_password');
-            if (passwordInput && confirmPasswordInput) {
-                confirmPasswordInput.addEventListener('input', function() {
-                    const match = passwordInput.value === this.value;
-                    console.log('🔒 Password match:', match ? '✅ Yes' : '❌ No');
-                });
-            }
-        });
-
         function togglePassword(inputId, iconId) {
             const passwordInput = document.getElementById(inputId);
             const toggleIcon = document.getElementById(iconId);
 
             if (passwordInput.type === 'password') {
-                console.log('👁️ Showing password for:', inputId);
                 passwordInput.type = 'text';
                 toggleIcon.classList.remove('fa-eye');
                 toggleIcon.classList.add('fa-eye-slash');
             } else {
-                console.log('🙈 Hiding password for:', inputId);
                 passwordInput.type = 'password';
                 toggleIcon.classList.remove('fa-eye-slash');
                 toggleIcon.classList.add('fa-eye');
             }
         }
     </script>
+
+    <?php if ($error): ?>
+        <script>
+            Swal.fire({
+                icon: 'error',
+                title: 'Registrasi Gagal',
+                text: '<?php echo addslashes($error); ?>',
+                confirmButtonColor: '#d33'
+            });
+        </script>
+    <?php endif; ?>
+
+    <?php if ($success): ?>
+        <script>
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil!',
+                text: '<?php echo addslashes($success); ?>',
+                confirmButtonColor: '#28a745',
+                timer: 2000
+            }).then(() => {
+                window.location.href = 'login.php';
+            });
+        </script>
+    <?php endif; ?>
 </body>
 
 </html>

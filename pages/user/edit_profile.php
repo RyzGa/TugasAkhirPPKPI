@@ -1,26 +1,21 @@
 <?php
-// Halaman Edit Profil User
-// User dapat mengubah nama, email, avatar, dan password
-
+// Edit Profil
 require_once '../../config/functions.php';
 require_once '../../config/database.php';
 
-requireLogin(); // Harus login untuk akses halaman ini
+requireLogin();
 
 $user = getCurrentUser();
 $error = '';
 $success = '';
 
-// Proses form edit profil saat method POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Ambil dan sanitize input dari form
     $name = sanitizeInput($_POST['name']);
     $email = sanitizeInput($_POST['email']);
     $avatar = $user['avatar']; // Keep existing avatar by default
     $password = isset($_POST['password']) ? $_POST['password'] : '';
     $confirm = isset($_POST['confirm_password']) ? $_POST['confirm_password'] : '';
 
-    // Validasi input
     if (empty($name) || empty($email)) {
         $error = 'Nama dan email harus diisi.';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -30,7 +25,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (!empty($password) && strlen($password) < 6) {
         $error = 'Password minimal 6 karakter.';
     } else {
-        // Handle upload avatar baru (opsional)
         if (isset($_FILES['avatar_file']) && $_FILES['avatar_file']['error'] !== UPLOAD_ERR_NO_FILE) {
             $file = $_FILES['avatar_file'];
             if ($file['error'] !== UPLOAD_ERR_OK) {
@@ -96,44 +90,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($checkRes->num_rows > 0) {
                 $error = 'Email sudah digunakan oleh akun lain.';
             } else {
-                // Query: UPDATE data user di database
-                // Jika password diisi, update juga password (di-hash)
-                if (!empty($password)) {
-                    $hashed = password_hash($password, PASSWORD_DEFAULT);
-                    $stmt = $conn->prepare("UPDATE users SET name = ?, email = ?, avatar = ?, password = ? WHERE id = ?");
-                    $stmt->bind_param("ssssi", $name, $email, $avatar, $hashed, $user['id']);
+                // Query: Cek apakah username sudah digunakan user lain
+                $checkNameStmt = $conn->prepare("SELECT id FROM users WHERE name = ? AND id != ?");
+                $checkNameStmt->bind_param("si", $name, $user['id']);
+                $checkNameStmt->execute();
+                $checkNameRes = $checkNameStmt->get_result();
+
+                if ($checkNameRes->num_rows > 0) {
+                    $error = 'Username sudah digunakan oleh akun lain. Pilih username lain!';
                 } else {
-                    // Jika password kosong, update tanpa password
-                    $stmt = $conn->prepare("UPDATE users SET name = ?, email = ?, avatar = ? WHERE id = ?");
-                    $stmt->bind_param("sssi", $name, $email, $avatar, $user['id']);
-                }
-
-                if ($stmt->execute()) {
-                    // Update session data
-                    $_SESSION['user_name'] = $name;
-                    $_SESSION['user_email'] = $email;
-                    $_SESSION['user_avatar'] = $avatar;
-
-                    // Delete previous avatar file if it was a local upload
-                    $oldAvatar = isset($user['avatar']) ? $user['avatar'] : '';
-                    if (!empty($oldAvatar) && strpos($oldAvatar, 'uploads/avatars/') === 0 && $oldAvatar !== $avatar) {
-                        $oldFull = dirname(dirname(__DIR__)) . '/' . $oldAvatar;
-                        if (is_file($oldFull)) {
-                            @unlink($oldFull);
-                        }
+                    // Query: UPDATE data user di database
+                    // Jika password diisi, update juga password (di-hash)
+                    if (!empty($password)) {
+                        $hashed = password_hash($password, PASSWORD_DEFAULT);
+                        $stmt = $conn->prepare("UPDATE users SET name = ?, email = ?, avatar = ?, password = ? WHERE id = ?");
+                        $stmt->bind_param("ssssi", $name, $email, $avatar, $hashed, $user['id']);
+                    } else {
+                        // Jika password kosong, update tanpa password
+                        $stmt = $conn->prepare("UPDATE users SET name = ?, email = ?, avatar = ? WHERE id = ?");
+                        $stmt->bind_param("sssi", $name, $email, $avatar, $user['id']);
                     }
 
-                    $success = 'Profil berhasil diperbarui.';
-                    // Refresh local $user
-                    $user = getCurrentUser();
-                    // Redirect back to profile page
-                    header('Location: profile.php');
-                    exit;
-                } else {
-                    $error = 'Terjadi kesalahan saat menyimpan. Silakan coba lagi.';
-                }
+                    if ($stmt->execute()) {
+                        // Update session data
+                        $_SESSION['user_name'] = $name;
+                        $_SESSION['user_email'] = $email;
+                        $_SESSION['user_avatar'] = $avatar;
 
-                $stmt->close();
+                        // Delete previous avatar file if it was a local upload
+                        $oldAvatar = isset($user['avatar']) ? $user['avatar'] : '';
+                        if (!empty($oldAvatar) && strpos($oldAvatar, 'uploads/avatars/') === 0 && $oldAvatar !== $avatar) {
+                            $oldFull = dirname(dirname(__DIR__)) . '/' . $oldAvatar;
+                            if (is_file($oldFull)) {
+                                @unlink($oldFull);
+                            }
+                        }
+
+                        $success = 'Profil berhasil diperbarui.';
+                        // Refresh local $user
+                        $user = getCurrentUser();
+                        // Redirect back to profile page
+                        header('Location: profile.php');
+                        exit;
+                    } else {
+                        $error = 'Terjadi kesalahan saat menyimpan. Silakan coba lagi.';
+                    }
+
+                    $stmt->close();
+                }
             }
 
             closeDBConnection($conn);
@@ -150,6 +154,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>Edit Profil - Nusa Bites</title>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
 <body>
@@ -199,18 +204,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="card" style="padding: 2rem;">
             <h2>Edit Profil</h2>
 
-            <?php if ($error): ?>
-                <div class="alert alert-error">
-                    <i class="fas fa-exclamation-circle"></i> <?php echo $error; ?>
-                </div>
-            <?php endif; ?>
-
-            <?php if ($success): ?>
-                <div class="alert alert-success">
-                    <i class="fas fa-check-circle"></i> <?php echo $success; ?>
-                </div>
-            <?php endif; ?>
-
             <form method="POST" action="edit_profile.php" enctype="multipart/form-data">
                 <div class="form-group">
                     <label for="name">Nama Lengkap</label>
@@ -257,37 +250,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
 
-    <script>
-        console.log('✏️ Edit profile page loaded');
-
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('✅ Edit profile page initialized');
-
-            // Log form submission
-            const profileForm = document.querySelector('form');
-            if (profileForm) {
-                profileForm.addEventListener('submit', function() {
-                    console.log('💾 Saving profile changes');
-                    const formData = new FormData(this);
-                    console.log('📋 Updated profile data:', {
-                        name: formData.get('name'),
-                        email: formData.get('email'),
-                        hasNewAvatar: formData.get('avatar')?.name ? true : false,
-                        changePassword: formData.get('password') ? true : false
-                    });
-                });
-            }
-
-            // Log avatar selection
-            const avatarInput = document.querySelector('input[name="avatar"]');
-            if (avatarInput) {
-                avatarInput.addEventListener('change', function() {
-                    console.log('🖼️ Avatar image selected:', this.files[0]?.name, `(${(this.files[0]?.size / 1024).toFixed(2)} KB)`);
-                });
-            }
-        });
-    </script>
     <script src="../../assets/js/dropdown.js"></script>
+
+    <?php if ($error): ?>
+        <script>
+            Swal.fire({
+                icon: 'error',
+                title: 'Oops...',
+                text: '<?php echo addslashes($error); ?>',
+                confirmButtonColor: '#d33'
+            });
+        </script>
+    <?php endif; ?>
+
+    <?php if ($success): ?>
+        <script>
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil!',
+                text: '<?php echo addslashes($success); ?>',
+                confirmButtonColor: '#28a745',
+                timer: 2000
+            }).then(() => {
+                window.location.href = 'profile.php';
+            });
+        </script>
+    <?php endif; ?>
+
     <?php include '../../includes/footer.php'; ?>
 </body>
 
