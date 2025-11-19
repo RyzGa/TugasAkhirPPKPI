@@ -136,9 +136,9 @@ closeDBConnection($conn);
                         </tr>
                     </thead>
                     <tbody>
-                        <?php 
+                        <?php
                         $no = 1;
-                        foreach ($recipes as $recipe): 
+                        foreach ($recipes as $recipe):
                         ?>
                             <tr style="border-bottom: 1px solid var(--color-border);">
                                 <td style="padding: 0.75rem;"><?php echo $no++; ?></td>
