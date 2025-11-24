@@ -256,7 +256,7 @@ closeDBConnection($conn);
                                             target="_blank">
                                             <i class="fas fa-eye"></i> Lihat Detail
                                         </a>
-                                        
+
                                         <?php if ($recipe['status'] === 'pending'): ?>
                                             <button onclick="approveRecipe(<?php echo $recipe['id']; ?>)"
                                                 class="btn btn-sm"

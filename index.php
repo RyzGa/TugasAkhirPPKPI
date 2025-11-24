@@ -262,7 +262,7 @@ closeDBConnection($conn);
                         <?php foreach ($recipes as $recipe): ?>
                             <div class="card recipe-card" onclick="window.location.href='pages/recipe/recipe_detail.php?id=<?php echo $recipe['id']; ?>'">
                                 <div class="recipe-card-image-wrapper">
-                                    <?php 
+                                    <?php
                                     $imageUrl = !empty($recipe['image']) ? htmlspecialchars($recipe['image']) : 'https://via.placeholder.com/400x300/f59e0b/ffffff?text=Gambar+Tidak+Tersedia';
                                     ?>
                                     <img src="<?php echo $imageUrl; ?>"
