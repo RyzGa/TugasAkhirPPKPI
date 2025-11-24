@@ -1,13 +1,9 @@
 <?php
-session_start();
+// Set session configuration SEBELUM session_start()
+ini_set('session.cookie_lifetime', 0); // 0 = hilang saat browser ditutup
+ini_set('session.gc_maxlifetime', 1800); // Session timeout 30 menit
 
-// Set session cookie agar hilang saat browser ditutup (bukan restore)
-// Hanya berlaku untuk session baru atau login baru
-if (!isset($_SESSION['initialized'])) {
-    ini_set('session.cookie_lifetime', 0); // 0 = hilang saat browser ditutup
-    session_regenerate_id(true); // Generate ID baru untuk keamanan
-    $_SESSION['initialized'] = true;
-}
+session_start();
 
 // Session timeout: 30 menit inactivity (1800 detik)
 $timeout_duration = 1800;
@@ -23,6 +19,12 @@ if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) >
 
 // Update last activity time
 $_SESSION['last_activity'] = time();
+
+// Regenerate session ID untuk keamanan (hanya sekali setelah login)
+if (!isset($_SESSION['initialized'])) {
+    session_regenerate_id(true);
+    $_SESSION['initialized'] = true;
+}
 
 require_once 'database.php';
 require_once 'cloudinary.php';

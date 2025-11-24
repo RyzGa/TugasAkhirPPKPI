@@ -29,6 +29,8 @@ CREATE TABLE IF NOT EXISTS recipes (
     region VARCHAR(50) NOT NULL,
     rating DECIMAL(3,2) DEFAULT 0.00,
     review_count INT DEFAULT 0,
+    status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+    rejection_reason TEXT DEFAULT NULL,
     ingredients TEXT NOT NULL,
     steps TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -36,7 +38,8 @@ CREATE TABLE IF NOT EXISTS recipes (
     FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE,
     INDEX idx_category (category),
     INDEX idx_region (region),
-    INDEX idx_rating (rating)
+    INDEX idx_rating (rating),
+    INDEX idx_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Tabel reviews

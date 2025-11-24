@@ -74,6 +74,21 @@ closeDBConnection($conn);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo htmlspecialchars($recipe['title']); ?> - Nusa Bites</title>
+
+    <!-- Open Graph Meta Tags for Social Media Sharing -->
+    <meta property="og:title" content="<?php echo htmlspecialchars($recipe['title']); ?>" />
+    <meta property="og:description" content="<?php echo htmlspecialchars(substr($recipe['description'], 0, 200)); ?>" />
+    <meta property="og:image" content="<?php echo htmlspecialchars($recipe['image']); ?>" />
+    <meta property="og:url" content="<?php echo htmlspecialchars($_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']); ?>" />
+    <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="Nusa Bites" />
+
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="<?php echo htmlspecialchars($recipe['title']); ?>" />
+    <meta name="twitter:description" content="<?php echo htmlspecialchars(substr($recipe['description'], 0, 200)); ?>" />
+    <meta name="twitter:image" content="<?php echo htmlspecialchars($recipe['image']); ?>" />
+
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -211,7 +226,7 @@ closeDBConnection($conn);
                 <img src="<?php echo htmlspecialchars($recipeImage); ?>"
                     alt="<?php echo htmlspecialchars($recipe['title']); ?>"
                     style="width: 100%; height: 100%; object-fit: cover;"
-                    onerror="this.src='../../assets/images/placeholder.jpg'">
+                    onerror="this.onerror=null; this.src='https://via.placeholder.com/800x600/f59e0b/ffffff?text=Gambar+Tidak+Tersedia'">
             <?php else: ?>
                 <div style="width: 100%; height: 100%; background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%); display: flex; align-items: center; justify-content: center;">
                     <i class="fas fa-utensils" style="font-size: 5rem; color: white; opacity: 0.5;"></i>
@@ -350,7 +365,7 @@ closeDBConnection($conn);
                     <?php else: ?>
                         <div class="alert alert-warning" style="margin-bottom: 2rem;">
                             <i class="fas fa-info-circle"></i>
-                            <a href="login.php" style="color: inherit; text-decoration: underline;">Login</a> untuk memberikan review
+                            <a href="../auth/login.php" style="color: inherit; text-decoration: underline;">Login</a> untuk memberikan review
                         </div>
                     <?php endif; ?>
 
@@ -510,7 +525,11 @@ closeDBConnection($conn);
         // Share Functions
         const recipeUrl = window.location.href.split('&success=')[0]; // Remove success param
         const recipeTitle = '<?php echo addslashes($recipe["title"]); ?>';
-        const recipeDescription = '<?php echo addslashes(substr($recipe["description"], 0, 100)); ?>...';
+        const recipeDescription = '<?php echo addslashes(substr($recipe["description"], 0, 150)); ?>';
+        const recipeImage = '<?php echo addslashes($recipe["image"]); ?>';
+        const recipeAuthor = '<?php echo addslashes($recipe["author_name"]); ?>';
+        const recipeRating = '<?php echo number_format($actualRating, 1); ?>';
+        const recipeCookingTime = '<?php echo addslashes($recipe["cooking_time"]); ?>';
 
         function toggleShareMenu() {
             const menu = document.getElementById('shareMenu');
@@ -528,20 +547,27 @@ closeDBConnection($conn);
         });
 
         function shareWhatsApp() {
-            const text = `${recipeTitle}\n\n${recipeDescription}\n\nLihat resep lengkapnya di: ${recipeUrl}`;
+            const text = `🍴 *${recipeTitle}*\n\n` +
+                `📝 ${recipeDescription}\n\n` +
+                `👨‍🍳 Oleh: ${recipeAuthor}\n` +
+                `⭐ Rating: ${recipeRating}/5.0\n` +
+                `⏱️ Waktu Memasak: ${recipeCookingTime}\n\n` +
+                `📸 Gambar: ${recipeImage}\n\n` +
+                `🔗 Lihat resep lengkapnya di:\n${recipeUrl}`;
             const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
             window.open(whatsappUrl, '_blank');
             toggleShareMenu();
         }
 
         function shareFacebook() {
-            const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(recipeUrl)}`;
+            // Facebook akan otomatis baca Open Graph meta tags untuk gambar dan deskripsi
+            const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(recipeUrl)}&quote=${encodeURIComponent(recipeTitle + ' - ' + recipeDescription)}`;
             window.open(facebookUrl, '_blank', 'width=600,height=400');
             toggleShareMenu();
         }
 
         function shareTwitter() {
-            const text = `${recipeTitle} - ${recipeDescription}`;
+            const text = `🍴 ${recipeTitle}\n\n${recipeDescription}\n\n⭐ ${recipeRating}/5.0 | ⏱️ ${recipeCookingTime}\n👨‍🍳 By ${recipeAuthor}`;
             const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(recipeUrl)}`;
             window.open(twitterUrl, '_blank', 'width=600,height=400');
             toggleShareMenu();

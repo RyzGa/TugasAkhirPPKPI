@@ -153,11 +153,26 @@ closeDBConnection($conn);
                                 <img src="<?php echo htmlspecialchars($recipe['image']); ?>"
                                     alt="<?php echo htmlspecialchars($recipe['title']); ?>"
                                     class="recipe-card-image"
-                                    onerror="this.src='../../assets/images/placeholder.jpg'">
+                                    onerror="this.onerror=null; this.src='https://via.placeholder.com/400x300/f59e0b/ffffff?text=Gambar+Tidak+Tersedia'">
                                 <span class="recipe-card-badge"><?php echo htmlspecialchars($recipe['category']); ?></span>
+                                <?php if ($recipe['status'] === 'pending'): ?>
+                                    <span class="badge" style="position: absolute; top: 0.5rem; right: 0.5rem; background: #f59e0b; color: white; padding: 0.25rem 0.5rem;">
+                                        <i class="fas fa-clock"></i> Pending
+                                    </span>
+                                <?php elseif ($recipe['status'] === 'rejected'): ?>
+                                    <span class="badge" style="position: absolute; top: 0.5rem; right: 0.5rem; background: #ef4444; color: white; padding: 0.25rem 0.5rem;">
+                                        <i class="fas fa-times-circle"></i> Ditolak
+                                    </span>
+                                <?php endif; ?>
                             </div>
                             <div class="card-content">
                                 <h3 class="recipe-card-title"><?php echo htmlspecialchars($recipe['title']); ?></h3>
+                                <?php if ($recipe['status'] === 'rejected' && !empty($recipe['rejection_reason'])): ?>
+                                    <div class="alert alert-danger" style="margin-top: 0.5rem; padding: 0.5rem; font-size: 0.875rem;">
+                                        <i class="fas fa-info-circle"></i>
+                                        <strong>Alasan:</strong> <?php echo htmlspecialchars($recipe['rejection_reason']); ?>
+                                    </div>
+                                <?php endif; ?>
                                 <div class="recipe-card-footer">
                                     <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
                                         <div class="flex items-center gap-1">
@@ -203,7 +218,7 @@ closeDBConnection($conn);
                                 <img src="<?php echo htmlspecialchars($recipe['image']); ?>"
                                     alt="<?php echo htmlspecialchars($recipe['title']); ?>"
                                     class="recipe-card-image"
-                                    onerror="this.src='../../assets/images/placeholder.jpg'">
+                                    onerror="this.onerror=null; this.src='https://via.placeholder.com/400x300/f59e0b/ffffff?text=Gambar+Tidak+Tersedia'">
                                 <span class="recipe-card-badge"><?php echo htmlspecialchars($recipe['category']); ?></span>
                             </div>
                             <div class="card-content">

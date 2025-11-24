@@ -14,11 +14,12 @@ $sortRating = isset($_GET['sort_rating']) ? sanitizeInput($_GET['sort_rating']) 
 $showAll = isset($_GET['show_all']) ? true : false;
 
 // Query resep dengan like dan review count
+// Hanya tampilkan resep yang sudah approved
 $query = "SELECT r.*, 
           (SELECT COUNT(*) FROM liked_recipes WHERE recipe_id = r.id AND user_id = ?) as is_liked,
           (SELECT COUNT(*) FROM reviews WHERE recipe_id = r.id) as actual_review_count,
           (SELECT AVG(rating) FROM reviews WHERE recipe_id = r.id) as actual_rating
-          FROM recipes r WHERE 1=1";
+          FROM recipes r WHERE r.status = 'approved'";
 $params = [$user ? $user['id'] : 0];
 $types = "i";
 
@@ -261,10 +262,14 @@ closeDBConnection($conn);
                         <?php foreach ($recipes as $recipe): ?>
                             <div class="card recipe-card" onclick="window.location.href='pages/recipe/recipe_detail.php?id=<?php echo $recipe['id']; ?>'">
                                 <div class="recipe-card-image-wrapper">
-                                    <img src="<?php echo htmlspecialchars($recipe['image']); ?>"
+                                    <?php 
+                                    $imageUrl = !empty($recipe['image']) ? htmlspecialchars($recipe['image']) : 'https://via.placeholder.com/400x300/f59e0b/ffffff?text=Gambar+Tidak+Tersedia';
+                                    ?>
+                                    <img src="<?php echo $imageUrl; ?>"
                                         alt="<?php echo htmlspecialchars($recipe['title']); ?>"
                                         class="recipe-card-image"
-                                        onerror="this.src='assets/images/placeholder.jpg'">
+                                        onerror="this.onerror=null; this.src='https://via.placeholder.com/400x300/f59e0b/ffffff?text=Gambar+Tidak+Tersedia'"
+                                        loading="lazy">
                                     <span class="recipe-card-badge"><?php echo htmlspecialchars($recipe['category']); ?></span>
 
                                     <?php if ($user): ?>
@@ -361,6 +366,19 @@ closeDBConnection($conn);
         }
     </script>
     <script src="assets/js/dropdown.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <?php if (isset($_GET['success']) && $_GET['success'] === 'pending'): ?>
+        <script>
+            Swal.fire({
+                icon: 'info',
+                title: 'Resep Terkirim!',
+                html: 'Resep Anda berhasil dikirim dan sedang menunggu <strong>validasi dari admin</strong>.<br><br>Resep akan dipublikasikan setelah disetujui oleh admin.',
+                confirmButtonColor: '#f59e0b',
+                confirmButtonText: 'OK, Mengerti'
+            });
+        </script>
+    <?php endif; ?>
 
     <?php include 'includes/footer.php'; ?>
 </body>

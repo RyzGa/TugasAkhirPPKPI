@@ -54,9 +54,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->bind_param("sssissssssss", $title, $description, $image, $user['id'], $user['name'], $user['avatar'], $cookingTime, $servings, $category, $region, $ingredientsJson, $stepsJson);
 
             if ($stmt->execute()) {
-                $success = 'Resep berhasil ditambahkan!';
                 $newRecipeId = $stmt->insert_id;
-                header("Location: recipe_detail.php?id=$newRecipeId&success=added");
+                // Resep berhasil ditambahkan dengan status pending (menunggu validasi admin)
+                $success = 'Resep berhasil dikirim! Menunggu validasi dari admin.';
+                header("Location: ../../index.php?success=pending");
                 exit;
             } else {
                 $error = 'Terjadi kesalahan saat menambahkan resep: ' . $stmt->error;

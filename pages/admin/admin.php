@@ -18,9 +18,8 @@ $recipes = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
 $statsQuery = "SELECT 
                 (SELECT COUNT(*) FROM recipes) as total_recipes,
-                (SELECT COUNT(*) FROM users WHERE role = 'user') as total_users,
-                (SELECT COUNT(*) FROM reviews) as total_reviews,
-                (SELECT AVG(rating) FROM reviews) as avg_rating";
+                (SELECT COUNT(*) FROM recipes WHERE status = 'pending') as pending_recipes,
+                (SELECT COUNT(*) FROM users WHERE role = 'user') as total_users";
 $statsResult = $conn->query($statsQuery);
 $stats = $statsResult->fetch_assoc();
 
@@ -46,7 +45,18 @@ closeDBConnection($conn);
             </a>
             <nav class="nav-links">
                 <a href="../../index.php" class="<?php echo isActivePage('index.php'); ?>">Beranda</a>
-                <a href="admin.php" class="<?php echo isActivePage('admin.php'); ?>"><i class="fas fa-shield-alt"></i> Admin</a>
+                <a href="admin.php" class="<?php echo isActivePage('admin.php'); ?>"><i class="fas fa-shield-alt"></i> Dashboard</a>
+                <a href="approve_recipes.php" class="<?php echo isActivePage('approve_recipes.php'); ?>">
+                    <i class="fas fa-check-circle"></i> Validasi Resep
+                    <?php if ($stats['pending_recipes'] > 0): ?>
+                        <span class="badge" style="background: #ef4444; color: white; padding: 0.2rem 0.5rem; border-radius: 1rem; font-size: 0.75rem; margin-left: 0.25rem;">
+                            <?php echo $stats['pending_recipes']; ?>
+                        </span>
+                    <?php endif; ?>
+                </a>
+                <a href="manage_users.php" class="<?php echo isActivePage('manage_users.php'); ?>">
+                    <i class="fas fa-users"></i> Kelola User
+                </a>
                 <div class="profile-dropdown">
                     <button class="user-profile-btn" onclick="toggleProfileDropdown(event)">
                         <?php
@@ -87,30 +97,24 @@ closeDBConnection($conn);
         </div>
 
         <!-- Statistics -->
-        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 2rem;">
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 2rem;">
             <div class="card" style="padding: 1.5rem; text-align: center;">
                 <i class="fas fa-book" style="font-size: 2rem; color: var(--color-primary); margin-bottom: 0.5rem;"></i>
                 <div style="font-size: 2rem; font-weight: 700; color: var(--color-text-dark);"><?php echo $stats['total_recipes']; ?></div>
                 <div class="text-gray text-sm">Total Resep</div>
             </div>
 
-            <div class="card" style="padding: 1.5rem; text-align: center;">
+            <a href="approve_recipes.php" class="card" style="padding: 1.5rem; text-align: center; text-decoration: none; <?php echo $stats['pending_recipes'] > 0 ? 'border: 2px solid #f59e0b;' : ''; ?>">
+                <i class="fas fa-clock" style="font-size: 2rem; color: #f59e0b; margin-bottom: 0.5rem;"></i>
+                <div style="font-size: 2rem; font-weight: 700; color: var(--color-text-dark);"><?php echo $stats['pending_recipes']; ?></div>
+                <div class="text-gray text-sm">Pending Validasi</div>
+            </a>
+
+            <a href="manage_users.php" class="card" style="padding: 1.5rem; text-align: center; text-decoration: none; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 6px -1px rgba(0,0,0,0.1)'" onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 1px 3px 0 rgba(0,0,0,0.1)'">
                 <i class="fas fa-users" style="font-size: 2rem; color: #3b82f6; margin-bottom: 0.5rem;"></i>
                 <div style="font-size: 2rem; font-weight: 700; color: var(--color-text-dark);"><?php echo $stats['total_users']; ?></div>
                 <div class="text-gray text-sm">Total User</div>
-            </div>
-
-            <div class="card" style="padding: 1.5rem; text-align: center;">
-                <i class="fas fa-comments" style="font-size: 2rem; color: #10b981; margin-bottom: 0.5rem;"></i>
-                <div style="font-size: 2rem; font-weight: 700; color: var(--color-text-dark);"><?php echo $stats['total_reviews']; ?></div>
-                <div class="text-gray text-sm">Total Review</div>
-            </div>
-
-            <div class="card" style="padding: 1.5rem; text-align: center;">
-                <i class="fas fa-star" style="font-size: 2rem; color: #fbbf24; margin-bottom: 0.5rem;"></i>
-                <div style="font-size: 2rem; font-weight: 700; color: var(--color-text-dark);"><?php echo number_format($stats['avg_rating'], 1); ?></div>
-                <div class="text-gray text-sm">Rata-rata Rating</div>
-            </div>
+            </a>
         </div>
 
         <!-- Recipes Table -->
