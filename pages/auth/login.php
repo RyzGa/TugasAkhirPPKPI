@@ -144,7 +144,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <a href="../../index.php" style="color: var(--color-text-gray); text-decoration: none;">
                         <i class="fas fa-arrow-left"></i> Kembali ke Beranda
                     </a>
+                    <p>Login Sebagai Admin
+                    <br>email : admin@nusabites.com
+                    <br>password : password
+                    </p>
                 </div>
+
+                
             </div>
         </div>
     </div>

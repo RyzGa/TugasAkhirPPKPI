@@ -117,7 +117,7 @@ closeDBConnection($conn);
 
     <div class="container" style="padding: 2rem 1rem;">
         <div style="margin-bottom: 2rem;">
-            <h1><i class="fas fa-check-circle"></i> Validasi Resep</h1>
+            <h1><i class="fas fa-check-circle"></i>Validasi Resep</h1>
             <p class="text-gray">Setujui atau tolak resep yang dikirim oleh user</p>
         </div>
 
